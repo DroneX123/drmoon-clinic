@@ -8,9 +8,7 @@
     --font-sans: "Inter", sans-serif;
 }
 
-html {
-    scroll-behavior: smooth;
-}
+
 
 /* Custom Utilities */
 @layer utilities {
