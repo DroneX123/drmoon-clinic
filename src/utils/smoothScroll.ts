@@ -48,12 +48,10 @@ export const smoothScrollTo = (targetId: string, duration: number = 1000) => {
         if (startTime === null) startTime = currentTime;
         const timeElapsed = currentTime - startTime;
 
-        // Easing function (easeInOutCubic)
+        // Easing function: easeOutExpo (Starts fast, slows down gently)
+        // This fixes the "freeze" feeling at the start
         const ease = (t: number, b: number, c: number, d: number) => {
-            t /= d / 2;
-            if (t < 1) return c / 2 * t * t * t + b;
-            t -= 2;
-            return c / 2 * (t * t * t + 2) + b;
+            return (t === d) ? b + c : c * (-Math.pow(2, -10 * t / d) + 1) + b;
         };
 
         const run = ease(timeElapsed, startPosition, distance, duration);
