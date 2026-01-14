@@ -1,4 +1,17 @@
+let currentAnimationFrameId: number | null = null;
+let cleanupListeners: (() => void) | null = null;
+
 export const smoothScrollTo = (targetId: string, duration: number = 1000) => {
+    // 1. Cancel any existing animation immediately
+    if (currentAnimationFrameId !== null) {
+        cancelAnimationFrame(currentAnimationFrameId);
+        currentAnimationFrameId = null;
+    }
+    if (cleanupListeners) {
+        cleanupListeners();
+        cleanupListeners = null;
+    }
+
     const target = document.getElementById(targetId);
     if (!target) return;
 
@@ -7,14 +20,19 @@ export const smoothScrollTo = (targetId: string, duration: number = 1000) => {
     const distance = targetPosition - startPosition;
     let startTime: number | null = null;
 
-    let animationFrameId: number;
-
+    // Cleanup function definition
     const cleanup = () => {
-        cancelAnimationFrame(animationFrameId);
+        if (currentAnimationFrameId !== null) {
+            cancelAnimationFrame(currentAnimationFrameId);
+            currentAnimationFrameId = null;
+        }
         window.removeEventListener('wheel', onUserScroll);
         window.removeEventListener('touchmove', onUserScroll);
         window.removeEventListener('touchstart', onUserScroll);
+        cleanupListeners = null;
     };
+
+    cleanupListeners = cleanup;
 
     const onUserScroll = () => {
         // User interrupted the scroll
@@ -30,7 +48,7 @@ export const smoothScrollTo = (targetId: string, duration: number = 1000) => {
         if (startTime === null) startTime = currentTime;
         const timeElapsed = currentTime - startTime;
 
-        // Easing function (easeInOutCubic) for smoother start/end
+        // Easing function (easeInOutCubic)
         const ease = (t: number, b: number, c: number, d: number) => {
             t /= d / 2;
             if (t < 1) return c / 2 * t * t * t + b;
@@ -39,14 +57,16 @@ export const smoothScrollTo = (targetId: string, duration: number = 1000) => {
         };
 
         const run = ease(timeElapsed, startPosition, distance, duration);
-        window.scrollTo(0, run);
+
+        // Use Math.round to avoid sub-pixel jitter on some screens
+        window.scrollTo(0, Math.round(run));
 
         if (timeElapsed < duration) {
-            animationFrameId = requestAnimationFrame(animation);
+            currentAnimationFrameId = requestAnimationFrame(animation);
         } else {
             cleanup();
         }
     };
 
-    animationFrameId = requestAnimationFrame(animation);
+    currentAnimationFrameId = requestAnimationFrame(animation);
 };
