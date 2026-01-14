@@ -1,0 +1,10 @@
+# Agent Instructions
+
+## Operating Principles
+1. **Frontend First:** We are building a React + Tailwind + Vite app.
+2. **Directives:** Always read the files in `directives/` before coding.
+3. **Safety Latch:** Before making complex changes, run: `git add . && git commit -m "Checkpoint"` so we can undo if you break it.
+
+## File Structure
+- `src/components/ui`: Reusable components (Buttons, Cards).
+- `directives/`: Your instructions (SOPs).

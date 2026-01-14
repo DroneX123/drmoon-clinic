@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@theme {
+    --color-gold-500: #d4af37;
+    /* Updated to Metallic Gold */
+    --color-gold-600: #b4941f;
+    --font-serif: "Playfair Display", serif;
+    --font-sans: "Inter", sans-serif;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+/* Custom Utilities */
+@layer utilities {
+    .text-gold {
+        color: var(--color-gold-500);
+    }
+
+    .bg-gold {
+        background-color: var(--color-gold-500);
+    }
+}
+
+/* Global Scrollbar Styling */
+
+/* Mobile: Hide completely */
+@media (max-width: 768px) {
+    * {
+        -ms-overflow-style: none;
+        /* IE and Edge */
+        scrollbar-width: none;
+        /* Firefox */
+    }
+
+    ::-webkit-scrollbar {
+        display: none;
+        /* Chrome, Safari and Opera */
+    }
+}
+
+/* Desktop: Thin, Grey -> Gold on Hover */
+@media (min-width: 769px) {
+    ::-webkit-scrollbar {
+        width: 6px;
+        /* Thin line */
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #020617;
+        /* Very dark background (Slate-950) to blend in */
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background-color: #475569;
+        /* Slate-600: Subtle Grey */
+        border-radius: 10px;
+        transition: background-color 0.3s ease;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background-color: #d4af37;
+        /* Gold on Hover */
+    }
+}

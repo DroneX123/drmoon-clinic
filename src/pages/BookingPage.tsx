@@ -1,0 +1,400 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, ChevronLeft, ChevronRight, Clock, Check, ChevronDown, AlertCircle } from 'lucide-react';
+import MoonMenuIcon from '../components/MoonMenuIcon';
+import { RITUALS } from '../utils/constants';
+
+const BookingPage: React.FC = () => {
+    const navigate = useNavigate();
+
+    // Calendar State
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [selectedTime, setSelectedTime] = useState<string | null>(null);
+
+    // Service Selection State
+    const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+    const [selectedTreatments, setSelectedTreatments] = useState<string[]>([]);
+
+    // Form State
+    const [formData, setFormData] = useState({
+        firstName: '',
+        lastName: '',
+        phone: '+213 ',
+        email: '', // OPTIONAL now
+        instagram: '',
+        description: ''
+    });
+
+    const [instagramError, setInstagramError] = useState<string>('');
+
+    // Calendar Logic
+    const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+    const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
+    const adjustedFirstDay = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+
+    const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+
+    const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+    const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time part for date comparison
+
+    const handleDateClick = (day: number) => {
+        const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+        if (newDate < today) return; // Prevent selection of past dates logic (though disabled in UI)
+        setSelectedDate(newDate);
+        setSelectedTime(null);
+    };
+
+    const timeSlots = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
+
+    // Service Logic
+    const toggleTreatment = (treatmentName: string) => {
+        setSelectedTreatments(prev =>
+            prev.includes(treatmentName)
+                ? prev.filter(t => t !== treatmentName)
+                : [...prev, treatmentName]
+        );
+    };
+
+    // Instagram Validation
+    const validateInstagram = (value: string) => {
+        // Simple regex for basic Instagram username format (letters, numbers, periods, underscores)
+        // Or full URL check
+        const usernameRegex = /^@?[\w\._]{1,30}$/;
+        const urlRegex = /^(https?:\/\/)?(www\.)?instagram\.com\/[\w\._]{1,30}\/?$/;
+
+        if (!value) {
+            setInstagramError('');
+            return false;
+        }
+
+        if (usernameRegex.test(value) || urlRegex.test(value)) {
+            setInstagramError('');
+            return true;
+        } else {
+            setInstagramError('Format invalide (ex: @pseudo ou lien complet)');
+            return false;
+        }
+    };
+
+    const handleInstagramChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setFormData({ ...formData, instagram: val });
+        validateInstagram(val);
+    };
+
+    const isFormValid = selectedDate && selectedTime &&
+        formData.firstName && formData.lastName &&
+        formData.instagram && !instagramError && // Instagram present and valid
+        selectedTreatments.length > 0;
+    // Email is now removed from here
+
+    return (
+        <div className="min-h-screen w-full bg-slate-950 text-white font-sans selection:bg-gold/30">
+
+            {/* Header / Back Button */}
+            <div className="fixed top-0 left-0 z-50 w-full p-6 md:p-8 flex items-center justify-between pointer-events-none">
+                <button
+                    onClick={() => navigate(-1)}
+                    className="pointer-events-auto group flex items-center gap-3 text-white/60 hover:text-white transition-colors"
+                >
+                    <div className="rounded-full bg-white/5 p-3 backdrop-blur-md border border-white/10 group-hover:border-gold/30 transition-all">
+                        <ArrowLeft className="h-5 w-5" />
+                    </div>
+                </button>
+                <div className="pointer-events-auto">
+                    <MoonMenuIcon className="h-6 w-6 text-gold opacity-50" />
+                </div>
+            </div>
+
+            <main className="flex min-h-screen flex-col items-center justify-center p-6 py-24 md:p-12">
+
+                <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24 items-start">
+
+                    {/* LEFT COLUMN: Services & Calendar */}
+                    <div className="flex flex-col gap-8 animate-in slide-in-from-left-8 duration-700 fade-in">
+
+                        <div className="space-y-2">
+                            <h1 className="font-serif text-4xl md:text-5xl text-white">Réserver</h1>
+                            <p className="text-white/40 font-light tracking-wide">Composez votre rituel beauté.</p>
+                        </div>
+
+                        {/* 1. SERVICE SELECTION ACCORDION */}
+                        <div className="space-y-4">
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-gold mb-2">Choix du Soin</h3>
+
+                            {RITUALS.map((ritual) => (
+                                <div key={ritual.id} className="border border-white/10 rounded-2xl bg-white/5 overflow-hidden transition-all duration-300">
+                                    <button
+                                        onClick={() => setExpandedCategory(expandedCategory === ritual.id ? null : ritual.id)}
+                                        className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
+                                    >
+                                        <span className="font-serif text-lg">{ritual.title}</span>
+                                        <ChevronDown className={`h-4 w-4 text-white/50 transition-transform duration-300 ${expandedCategory === ritual.id ? 'rotate-180' : ''}`} />
+                                    </button>
+
+                                    <div className={`transition-all duration-300 overflow-hidden ${expandedCategory === ritual.id ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+                                        <div className="p-4 pt-0 space-y-3">
+                                            {ritual.treatments.map((treatment, idx) => (
+                                                <div
+                                                    key={idx}
+                                                    onClick={() => toggleTreatment(treatment.name)}
+                                                    className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all border
+                                                        ${selectedTreatments.includes(treatment.name)
+                                                            ? 'bg-gold/10 border-gold/30'
+                                                            : 'bg-transparent border-transparent hover:bg-white/5'}
+                                                    `}
+                                                >
+                                                    <div className={`mt-1 h-4 w-4 rounded border flex items-center justify-center transition-colors
+                                                        ${selectedTreatments.includes(treatment.name) ? 'bg-gold border-gold' : 'border-white/30'}
+                                                    `}>
+                                                        {selectedTreatments.includes(treatment.name) && <Check className="h-3 w-3 text-black" />}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <div className="flex justify-between items-baseline">
+                                                            <span className={`text-sm font-medium ${selectedTreatments.includes(treatment.name) ? 'text-white' : 'text-white/70'}`}>
+                                                                {treatment.name}
+                                                            </span>
+                                                            <span className="text-xs text-gold">{treatment.price}</span>
+                                                        </div>
+                                                        {treatment.description && (
+                                                            <p className="text-[10px] text-white/30 mt-1 line-clamp-2">{treatment.description}</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* 2. CALENDAR (Only shows if service selected) */}
+                        <div className={`transition-all duration-700 ${selectedTreatments.length > 0 ? 'opacity-100 translate-y-0' : 'opacity-50 blur-sm pointer-events-none'}`}>
+                            <div className="bg-white/5 border border-white/10 rounded-3xl p-6 md:p-8 backdrop-blur-sm mt-4">
+                                {/* Calendar Header */}
+                                <div className="flex items-center justify-between mb-8">
+                                    <span className="font-serif text-2xl text-gold">
+                                        {monthNames[currentDate.getMonth()]} <span className="text-white/30">{currentDate.getFullYear()}</span>
+                                    </span>
+                                    <div className="flex gap-2">
+                                        <button onClick={handlePrevMonth} className="p-2 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors"><ChevronLeft className="h-5 w-5" /></button>
+                                        <button onClick={handleNextMonth} className="p-2 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors"><ChevronRight className="h-5 w-5" /></button>
+                                    </div>
+                                </div>
+
+                                {/* Days Grid */}
+                                <div className="grid grid-cols-7 mb-4 text-center">
+                                    {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map(day => (
+                                        <span key={day} className="text-xs font-bold text-white/20 py-2">{day}</span>
+                                    ))}
+                                </div>
+                                <div className="grid grid-cols-7 gap-2 text-center">
+                                    {Array.from({ length: adjustedFirstDay }).map((_, i) => <div key={`empty-${i}`} className="aspect-square" />)}
+                                    {Array.from({ length: daysInMonth }).map((_, i) => {
+                                        const day = i + 1;
+                                        const dateToCheck = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+                                        const isPast = dateToCheck < today; // Check if past
+
+                                        const isSelected = selectedDate?.getDate() === day && selectedDate?.getMonth() === currentDate.getMonth();
+                                        const isToday = new Date().getDate() === day && new Date().getMonth() === currentDate.getMonth();
+
+                                        return (
+                                            <button
+                                                key={day}
+                                                disabled={isPast}
+                                                onClick={() => handleDateClick(day)}
+                                                className={`aspect-square rounded-full flex items-center justify-center text-sm transition-all duration-300 relative
+                                                    ${isPast ? 'text-white/10 cursor-not-allowed' : 'hover:bg-white/10 text-white/80'}
+                                                    ${isSelected ? 'bg-gold text-slate-900 font-bold scale-110 shadow-[0_0_15px_rgba(212,175,55,0.4)] hover:bg-gold' : ''}
+                                                    ${isToday && !isSelected ? 'border border-gold/30 text-gold' : ''}
+                                                `}
+                                            >
+                                                {day}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Time Slots (Shows only when date selected) */}
+                        <div className={`transition-all duration-500 overflow-hidden ${selectedDate ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+                            <h3 className="text-sm font-bold uppercase tracking-widest text-white/40 mb-4 flex items-center gap-2">
+                                <Clock className="h-4 w-4" /> Disponibilités
+                            </h3>
+                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                                {timeSlots.map(time => (
+                                    <button
+                                        key={time}
+                                        onClick={() => setSelectedTime(time)}
+                                        className={`py-3 px-4 rounded-xl text-sm font-medium transition-all duration-300 border
+                                            ${selectedTime === time
+                                                ? 'bg-white text-slate-900 border-white shadow-lg scale-105'
+                                                : 'bg-white/5 border-white/5 text-slate-300 hover:border-gold/30 hover:text-gold'}
+                                        `}
+                                    >
+                                        {time}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                    </div>
+
+                    {/* RIGHT COLUMN: Form */}
+                    <div className="flex flex-col justify-center animate-in slide-in-from-right-8 duration-700 fade-in delay-200 sticky top-24">
+                        <div className="bg-white/[0.02] border border-white/5 p-8 md:p-12 rounded-[2rem] relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-gold/5 rounded-full blur-[100px] -z-10 pointer-events-none" />
+
+                            <h2 className="font-serif text-3xl text-white mb-8">Vos Coordonnées</h2>
+
+                            <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold uppercase tracking-widest text-white/40 ml-1">Prénom</label>
+                                            <input
+                                                type="text"
+                                                placeholder="Votre prénom"
+                                                value={formData.firstName}
+                                                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:border-gold/50 focus:outline-none focus:bg-white/10 transition-all font-light"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold uppercase tracking-widest text-white/40 ml-1">Nom</label>
+                                            <input
+                                                type="text"
+                                                placeholder="Votre nom"
+                                                value={formData.lastName}
+                                                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:border-gold/50 focus:outline-none focus:bg-white/10 transition-all font-light"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Phone */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold uppercase tracking-widest text-white/40 ml-1">Téléphone</label>
+                                        <div className="relative">
+                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2 border-r border-white/10 pr-3 pointer-events-none">
+                                                <span className="text-lg">🇩🇿</span>
+                                            </div>
+                                            <input
+                                                type="tel"
+                                                value={formData.phone}
+                                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl pl-20 pr-4 py-3 text-white placeholder:text-white/20 focus:border-gold/50 focus:outline-none focus:bg-white/10 transition-all font-light"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Email (Optional) */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold uppercase tracking-widest text-white/40 ml-1 flex justify-between">
+                                            Email <span className="text-[10px] opacity-50">Optionnel</span>
+                                        </label>
+                                        <input
+                                            type="email"
+                                            placeholder="exemple@email.com"
+                                            value={formData.email}
+                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:border-gold/50 focus:outline-none focus:bg-white/10 transition-all font-light"
+                                        />
+                                    </div>
+
+                                    {/* Instagram (Mandatory + Validation) */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold uppercase tracking-widest text-gold/80 ml-1 flex justify-between">
+                                            Instagram <span className="text-[10px] opacity-50">*Obligatoire</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="@votre_compte"
+                                            value={formData.instagram}
+                                            onChange={handleInstagramChange}
+                                            className={`w-full bg-white/5 border rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none transition-all font-light
+                                                ${instagramError ? 'border-red-500/50 focus:border-red-500' : 'border-gold/30 focus:border-gold focus:bg-white/10'}
+                                            `}
+                                        />
+                                        {instagramError && (
+                                            <div className="flex items-center gap-1 text-[10px] text-red-400 ml-1 animate-in fade-in slide-in-from-top-1">
+                                                <AlertCircle className="h-3 w-3" /> {instagramError}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Description (Optional) */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold uppercase tracking-widest text-white/40 ml-1 flex justify-between">
+                                            Demande Spéciale <span className="text-[10px] opacity-50">Optionnel</span>
+                                        </label>
+                                        <textarea
+                                            rows={3}
+                                            placeholder="Allergies, préférences, ou questions..."
+                                            value={formData.description}
+                                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:border-gold/50 focus:outline-none focus:bg-white/10 transition-all font-light resize-none"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Summary of Selections */}
+                                {(selectedTreatments.length > 0 || selectedDate) && (
+                                    <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-xs text-white/60 space-y-2">
+                                        <p className="uppercase tracking-widest text-gold pb-2 border-b border-white/10 mb-2">Résumé</p>
+
+                                        {/* Date & Time */}
+                                        {selectedDate && (
+                                            <div className="flex justify-between items-center text-white/80">
+                                                <span>📅 {selectedDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+                                                {selectedTime && <span className="font-bold text-gold">{selectedTime}</span>}
+                                            </div>
+                                        )}
+
+                                        {/* Treatments */}
+                                        {selectedTreatments.length > 0 && (
+                                            <div className="space-y-1 pt-2 border-t border-white/5">
+                                                {selectedTreatments.map(t => (
+                                                    <div key={t} className="flex justify-between">
+                                                        <span>• {t}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                <button
+                                    className={`w-full relative group overflow-hidden rounded-xl py-4 transition-all duration-300
+                                        ${isFormValid
+                                            ? 'bg-gold text-slate-900 cursor-pointer hover:shadow-[0_0_30px_rgba(212,175,55,0.4)]'
+                                            : 'bg-white/5 text-white/20 cursor-not-allowed opacity-50'}
+                                    `}
+                                    disabled={!isFormValid}
+                                >
+                                    <span className="relative z-10 font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2">
+                                        Confirmer le Rendez-vous
+                                    </span>
+                                </button>
+
+                                {!isFormValid && (
+                                    <p className="text-center text-[10px] text-white/30 font-light mt-2">
+                                        Veuillez remplir remplir les champs obligatoires (*) et sélectionner un soin.
+                                    </p>
+                                )}
+                            </form>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+        </div>
+    );
+};
+
+export default BookingPage;
