@@ -90,7 +90,31 @@ const BookingPage: React.FC = () => {
         formData.firstName && formData.lastName &&
         formData.instagram && !instagramError && // Instagram present and valid
         selectedTreatments.length > 0;
-    // Email is now removed from here
+    // Price Calculation
+    const calculateTotal = () => {
+        let total = 0;
+        selectedTreatments.forEach(treatmentName => {
+            for (const ritual of RITUALS) {
+                const treatment = ritual.treatments.find(t => t.name === treatmentName);
+                if (treatment) {
+                    const priceStr = treatment.price;
+                    if (priceStr.toLowerCase().includes('offert')) continue;
+
+                    const match = priceStr.match(/(\d[\d\s]*)/);
+                    if (match) {
+                        const value = parseInt(match[0].replace(/\s/g, ''), 10);
+                        if (!isNaN(value)) {
+                            total += value;
+                        }
+                    }
+                }
+            }
+        });
+        return total;
+    };
+
+    const totalPrice = calculateTotal();
+    const formattedPrice = new Intl.NumberFormat('fr-DZ').format(totalPrice);
 
     return (
         <div className="min-h-screen w-full bg-slate-950 text-white font-sans selection:bg-gold/30">
@@ -170,6 +194,17 @@ const BookingPage: React.FC = () => {
                                     </div>
                                 </div>
                             ))}
+                        </div>
+
+                        {/* Total Price Display (Before Calendar) */}
+                        <div className={`transition-all duration-500 overflow-hidden ${selectedTreatments.length > 0 ? 'max-h-24 opacity-100' : 'max-h-0 opacity-0'}`}>
+                            <div className="bg-gradient-to-r from-gold/20 to-transparent border border-gold/30 rounded-2xl p-4 flex items-center justify-between mt-6 backdrop-blur-md">
+                                <div className="flex flex-col">
+                                    <span className="text-gold font-serif text-lg">Total Estimé</span>
+                                    <span className="text-xs text-white/50">Payable sur place</span>
+                                </div>
+                                <span className="text-3xl font-serif text-white">{formattedPrice} <span className="text-sm font-sans text-white/50">DA</span></span>
+                            </div>
                         </div>
 
                         {/* 2. CALENDAR (Only shows if service selected) */}
@@ -358,12 +393,18 @@ const BookingPage: React.FC = () => {
 
                                         {/* Treatments */}
                                         {selectedTreatments.length > 0 && (
-                                            <div className="space-y-1 pt-2 border-t border-white/5">
+                                            <div className="space-y-1 pt-3 border-t border-white/5">
                                                 {selectedTreatments.map(t => (
                                                     <div key={t} className="flex justify-between">
                                                         <span>• {t}</span>
                                                     </div>
                                                 ))}
+
+                                                {/* Summary Total */}
+                                                <div className="flex justify-between items-center pt-3 mt-2 border-t border-white/10 text-white font-medium">
+                                                    <span className="text-gold uppercase text-[10px] tracking-widest">Total Estimé</span>
+                                                    <span>{formattedPrice} DA</span>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
