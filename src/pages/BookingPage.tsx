@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ChevronLeft, ChevronRight, Clock, Check, ChevronDown, AlertCircle } from 'lucide-react';
 import MoonMenuIcon from '../components/MoonMenuIcon';
@@ -6,6 +6,11 @@ import { RITUALS } from '../utils/constants';
 
 const BookingPage: React.FC = () => {
     const navigate = useNavigate();
+
+    // Scroll to top when page loads
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
 
     // Calendar State
     const [currentDate, setCurrentDate] = useState(new Date());

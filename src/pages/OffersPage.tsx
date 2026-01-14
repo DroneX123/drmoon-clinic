@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowRight, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { smoothScrollTo } from '../utils/smoothScroll';
@@ -14,6 +14,11 @@ const OffersPage: React.FC = () => {
     const navigate = useNavigate();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [selectedRitual, setSelectedRitual] = useState<Ritual | null>(null);
+
+    // Scroll to top when page loads
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
 
     return (
         <div className="relative min-h-[100dvh] w-full bg-slate-950 font-sans text-white">
