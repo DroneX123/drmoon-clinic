@@ -9,11 +9,28 @@ import Footer from '../components/Footer';
 
 const LandingPage: React.FC = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [showStickyBar, setShowStickyBar] = useState(true);
     const navigate = useNavigate();
 
     // Scroll to top when page loads
     useEffect(() => {
         window.scrollTo(0, 0);
+    }, []);
+
+    // Hide sticky bar when near footer
+    useEffect(() => {
+        const handleScroll = () => {
+            const footer = document.getElementById('footer');
+            if (footer) {
+                const footerTop = footer.getBoundingClientRect().top;
+                const windowHeight = window.innerHeight;
+                // Hide bar when footer is 100px from bottom of screen
+                setShowStickyBar(footerTop > windowHeight - 100);
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
     return (
@@ -125,15 +142,17 @@ const LandingPage: React.FC = () => {
             </div>
 
             {/* Sticky Booking Bar - Mobile Only */}
-            <div className="fixed bottom-0 left-0 z-50 w-full bg-gradient-to-t from-black via-black/95 to-transparent pb-6 pt-8 px-6 md:hidden pointer-events-none">
-                <button
-                    onClick={() => navigate('/offers')}
-                    className="pointer-events-auto group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-full bg-[#A5F3FC] py-4 text-[#0F172A] transition-transform active:scale-95 shadow-[0_0_20px_rgba(165,243,252,0.3)]"
-                >
-                    <span className="font-bold tracking-widest uppercase text-sm">Prendre Rendez-vous</span>
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </button>
-            </div>
+            {showStickyBar && (
+                <div className="fixed bottom-0 left-0 z-50 w-full bg-gradient-to-t from-black via-black/95 to-transparent pb-6 pt-8 px-6 md:hidden pointer-events-none transition-opacity duration-300">
+                    <button
+                        onClick={() => navigate('/offers')}
+                        className="pointer-events-auto group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-full bg-[#A5F3FC] py-4 text-[#0F172A] transition-transform active:scale-95 shadow-[0_0_20px_rgba(165,243,252,0.3)]"
+                    >
+                        <span className="font-bold tracking-widest uppercase text-sm">Prendre Rendez-vous</span>
+                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </button>
+                </div>
+            )}
         </div >
     );
 };
