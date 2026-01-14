@@ -45,7 +45,7 @@ const OffersPage: React.FC = () => {
 
                 {/* Right: Contact 'Stylish' Button */}
                 <button
-                    onClick={() => smoothScrollTo('footer', 2000)}
+                    onClick={() => smoothScrollTo('footer')}
                     className="group relative overflow-hidden rounded-full bg-white/10 px-6 py-2 backdrop-blur-md transition-all hover:bg-gold/20"
                 >
                     <span className="relative z-10 text-xs font-bold uppercase tracking-widest text-white group-hover:text-gold transition-colors">
