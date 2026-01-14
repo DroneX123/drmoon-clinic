@@ -3,7 +3,7 @@ import { Instagram } from 'lucide-react';
 
 const Footer: React.FC = () => {
     return (
-        <footer id="footer" className="w-full bg-[#050505] py-20 px-6 md:px-12 border-t border-white/5 relative overflow-hidden">
+        <footer id="footer" className="w-full bg-[#050505] py-20 pb-32 md:pb-20 px-6 md:px-12 border-t border-white/5 relative overflow-hidden">
             {/* Ambient Background Glow */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-1 bg-gradient-to-r from-transparent via-gold/30 to-transparent opacity-50" />
 

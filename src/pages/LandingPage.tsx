@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { smoothScrollTo } from '../utils/smoothScroll';
@@ -11,6 +11,11 @@ const LandingPage: React.FC = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const navigate = useNavigate();
 
+    // Scroll to top when page loads
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
+
     return (
         <div className="relative min-h-[100dvh] w-full font-sans text-white overflow-x-hidden">
             {/* Background Image - Fixed position to stay while scrolling */}
@@ -18,6 +23,8 @@ const LandingPage: React.FC = () => {
                 <img
                     src={langingPageBg}
                     alt="Background"
+                    loading="eager"
+                    decoding="async"
                     className="h-full w-full object-cover object-[75%] md:object-center"
                 />
                 {/* Dark Gradient Overlay */}
@@ -118,10 +125,10 @@ const LandingPage: React.FC = () => {
             </div>
 
             {/* Sticky Booking Bar - Mobile Only */}
-            <div className="fixed bottom-0 left-0 z-50 w-full bg-gradient-to-t from-black via-black/95 to-transparent pb-8 pt-12 px-6 md:hidden">
+            <div className="fixed bottom-0 left-0 z-50 w-full bg-gradient-to-t from-black via-black/95 to-transparent pb-6 pt-8 px-6 md:hidden pointer-events-none">
                 <button
                     onClick={() => navigate('/offers')}
-                    className="group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-full bg-[#A5F3FC] py-4 text-[#0F172A] transition-transform active:scale-95 shadow-[0_0_20px_rgba(165,243,252,0.3)]"
+                    className="pointer-events-auto group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-full bg-[#A5F3FC] py-4 text-[#0F172A] transition-transform active:scale-95 shadow-[0_0_20px_rgba(165,243,252,0.3)]"
                 >
                     <span className="font-bold tracking-widest uppercase text-sm">Prendre Rendez-vous</span>
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />

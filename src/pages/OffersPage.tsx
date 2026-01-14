@@ -81,6 +81,8 @@ const OffersPage: React.FC = () => {
                             <img
                                 src={ritual.image}
                                 alt={ritual.title}
+                                loading="lazy"
+                                decoding="async"
                                 className="h-full w-full object-cover opacity-80"
                             />
                             <div className="absolute inset-0 bg-black/40 transition-opacity duration-300 md:group-hover:bg-black/30 group-active:bg-black/30" />
@@ -131,6 +133,8 @@ const OffersPage: React.FC = () => {
                             <img
                                 src={selectedRitual.image}
                                 alt={selectedRitual.title}
+                                loading="lazy"
+                                decoding="async"
                                 className="h-full w-full object-cover grayscale opacity-80"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] to-transparent md:bg-gradient-to-r" />
