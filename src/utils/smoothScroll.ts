@@ -7,6 +7,25 @@ export const smoothScrollTo = (targetId: string, duration: number = 1000) => {
     const distance = targetPosition - startPosition;
     let startTime: number | null = null;
 
+    let animationFrameId: number;
+
+    const cleanup = () => {
+        cancelAnimationFrame(animationFrameId);
+        window.removeEventListener('wheel', onUserScroll);
+        window.removeEventListener('touchmove', onUserScroll);
+        window.removeEventListener('touchstart', onUserScroll);
+    };
+
+    const onUserScroll = () => {
+        // User interrupted the scroll
+        cleanup();
+    };
+
+    // Add listeners to detect user interaction
+    window.addEventListener('wheel', onUserScroll, { passive: true });
+    window.addEventListener('touchmove', onUserScroll, { passive: true });
+    window.addEventListener('touchstart', onUserScroll, { passive: true });
+
     const animation = (currentTime: number) => {
         if (startTime === null) startTime = currentTime;
         const timeElapsed = currentTime - startTime;
@@ -23,9 +42,11 @@ export const smoothScrollTo = (targetId: string, duration: number = 1000) => {
         window.scrollTo(0, run);
 
         if (timeElapsed < duration) {
-            requestAnimationFrame(animation);
+            animationFrameId = requestAnimationFrame(animation);
+        } else {
+            cleanup();
         }
     };
 
-    requestAnimationFrame(animation);
+    animationFrameId = requestAnimationFrame(animation);
 };
