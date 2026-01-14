@@ -5,18 +5,21 @@ import LandingPage from './pages/LandingPage';
 import BookingPage from './pages/BookingPage';
 import OffersPage from './pages/OffersPage';
 import PageTransition from './components/PageTransition';
-
+import { SpeedInsights } from "@vercel/speed-insights/react"
 const AnimatedRoutes: React.FC = () => {
   const location = useLocation();
 
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<PageTransition><LandingPage /></PageTransition>} />
-        <Route path="/booking" element={<PageTransition><BookingPage /></PageTransition>} />
-        <Route path="/offers" element={<PageTransition><OffersPage /></PageTransition>} />
-      </Routes>
-    </AnimatePresence>
+    <>
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          <Route path="/" element={<PageTransition><LandingPage /></PageTransition>} />
+          <Route path="/booking" element={<PageTransition><BookingPage /></PageTransition>} />
+          <Route path="/offers" element={<PageTransition><OffersPage /></PageTransition>} />
+        </Routes>
+      </AnimatePresence>
+      <SpeedInsights />
+    </>
   );
 };
 
