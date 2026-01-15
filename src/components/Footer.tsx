@@ -9,9 +9,9 @@ const Footer: React.FC = () => {
 
             <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-16 md:gap-8 text-center md:text-left relative z-10">
                 {/* 1. Brand & Philosophy */}
-                <div className="space-y-6 flex flex-col items-center md:items-start">
-                    <div>
-                        <h3 className="font-serif text-3xl text-white tracking-wide">Dr. Moon</h3>
+                <div className="space-y-6 flex flex-col items-center md:items-start group cursor-pointer">
+                    <div className="transition-transform duration-300 group-hover:scale-105">
+                        <h3 className="font-serif text-3xl text-white tracking-wide transition-colors duration-300 group-hover:text-gold">Dr. Moon</h3>
                         <p className="text-[10px] text-gold uppercase tracking-[0.3em] mt-1">Cabinet Esthétique</p>
                     </div>
                     <p className="text-sm text-slate-400 font-light leading-relaxed max-w-xs mx-auto md:mx-0">
