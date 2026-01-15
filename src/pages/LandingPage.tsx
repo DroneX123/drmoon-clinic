@@ -87,7 +87,7 @@ const LandingPage: React.FC = () => {
 
                 {/* Hero Section */}
                 <section className="flex min-h-[100dvh] flex-col justify-center px-6 md:justify-end md:px-12 md:pb-20">
-                    <div className="flex w-full flex-col md:flex-row md:items-center md:justify-between gap-8">
+                    <div className="flex w-full flex-col md:flex-row md:items-end md:justify-between">
 
                         {/* Text Content */}
                         <div className="flex max-w-2xl flex-col items-start gap-6 text-left transform transition-all duration-700 animate-in fade-in slide-in-from-bottom-8">
@@ -107,7 +107,7 @@ const LandingPage: React.FC = () => {
                         </div>
 
                         {/* Desktop CTA */}
-                        <div className="hidden md:flex md:flex-shrink-0">
+                        <div className="hidden md:block relative z-20">
                             <button
                                 onClick={() => navigate('/offers')}
                                 className="group flex items-center gap-4 rounded-full bg-[#A5F3FC] pl-8 pr-2 py-2 text-[#0F172A] transition-all hover:bg-white hover:scale-105 shadow-[0_0_30px_rgba(165,243,252,0.3)]"
