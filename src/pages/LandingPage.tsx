@@ -107,12 +107,12 @@ const LandingPage: React.FC = () => {
                         </div>
 
                         {/* Desktop CTA */}
-                        <div className="hidden md:block relative z-20">
+                        <div className="hidden md:flex md:items-end md:shrink-0 relative z-50 pb-2">
                             <button
                                 onClick={() => navigate('/offers')}
                                 className="group flex items-center gap-4 rounded-full bg-[#A5F3FC] pl-8 pr-2 py-2 text-[#0F172A] transition-all hover:bg-white hover:scale-105 shadow-[0_0_30px_rgba(165,243,252,0.3)]"
                             >
-                                <span className="text-xs font-bold tracking-widest uppercase">Prendre Rendez-vous</span>
+                                <span className="text-xs font-bold tracking-widest uppercase whitespace-nowrap">Prendre Rendez-vous</span>
                                 <div className="flex h-10 w-10 items-center justify-center rounded-full border border-black/10 transition-transform group-hover:rotate-[-45deg]">
                                     <ArrowRight className="h-4 w-4" />
                                 </div>

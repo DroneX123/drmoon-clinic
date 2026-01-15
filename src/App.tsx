@@ -1,16 +1,11 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
-import LandingPage from './pages/LandingPage';
-import BookingPage from './pages/BookingPage';
-import OffersPage from './pages/OffersPage';
-import PageTransition from './components/PageTransition';
-import { SpeedInsights } from "@vercel/speed-insights/react"
+import Cursor from './components/Cursor';
+
 const AnimatedRoutes: React.FC = () => {
   const location = useLocation();
 
   return (
     <>
+      <Cursor />
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<PageTransition><LandingPage /></PageTransition>} />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ChevronLeft, ChevronRight, Clock, Check, ChevronDown, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Check, ChevronDown, AlertCircle } from 'lucide-react';
 import MoonMenuIcon from '../components/MoonMenuIcon';
 import { RITUALS } from '../utils/constants';
 
@@ -53,8 +53,6 @@ const BookingPage: React.FC = () => {
         setSelectedTime(null);
     };
 
-    const timeSlots = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
-
     // Service Logic
     const toggleTreatment = (treatmentName: string) => {
         setSelectedTreatments(prev =>
@@ -91,7 +89,7 @@ const BookingPage: React.FC = () => {
         validateInstagram(val);
     };
 
-    const isFormValid = selectedDate && selectedTime &&
+    const isFormValid = selectedDate &&
         formData.firstName && formData.lastName &&
         formData.instagram && !instagramError && // Instagram present and valid
         selectedTreatments.length > 0;
@@ -262,24 +260,15 @@ const BookingPage: React.FC = () => {
                         </div>
 
                         {/* Time Slots (Shows only when date selected) */}
-                        <div className={`transition-all duration-500 overflow-hidden ${selectedDate ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-                            <h3 className="text-sm font-bold uppercase tracking-widest text-white/40 mb-4 flex items-center gap-2">
-                                <Clock className="h-4 w-4" /> Disponibilités
-                            </h3>
-                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                                {timeSlots.map(time => (
-                                    <button
-                                        key={time}
-                                        onClick={() => setSelectedTime(time)}
-                                        className={`py-3 px-4 rounded-xl text-sm font-medium transition-all duration-300 border
-                                            ${selectedTime === time
-                                                ? 'bg-white text-slate-900 border-white shadow-lg scale-105'
-                                                : 'bg-white/5 border-white/5 text-slate-300 hover:border-gold/30 hover:text-gold'}
-                                        `}
-                                    >
-                                        {time}
-                                    </button>
-                                ))}
+                        {/* Availability Text (Replaces Time Slots) */}
+                        <div className={`transition-all duration-500 overflow-hidden ${selectedDate ? 'max-h-32 opacity-100' : 'max-h-0 opacity-0'}`}>
+                            <div className="flex flex-col items-center justify-center text-center p-6 border-t border-white/5 mt-4">
+                                <span className="font-serif text-lg text-white">
+                                    Vous êtes disponible à partir de <span className="text-gold font-bold">09:00</span>
+                                </span>
+                                <p className="text-[10px] text-white/30 uppercase tracking-widest mt-2">
+                                    Nous confirmerons l'heure exacte par téléphone
+                                </p>
                             </div>
                         </div>
 
