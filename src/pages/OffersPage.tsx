@@ -37,7 +37,7 @@ const OffersPage: React.FC = () => {
 
                     <button
                         onClick={() => navigate('/')}
-                        className="flex flex-col text-left group"
+                        className="flex flex-col text-left group transition-transform hover:scale-105"
                     >
                         <span className="font-serif text-lg font-medium leading-none tracking-wide text-white group-hover:text-gold transition-colors">
                             Dr. Moon

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ChevronLeft, ChevronRight, Check, ChevronDown, AlertCircle } from 'lucide-react';
 import { useQuery, useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "../convex/_generated/api";
 import MoonMenuIcon from '../components/MoonMenuIcon';
 import { groupServicesByCategory, formatDateForConvex } from '../utils/convexHelpers';
 
@@ -13,12 +13,6 @@ const BookingPage: React.FC = () => {
     const services = useQuery(api.services.getAllServices) || [];
     const createAppointment = useMutation(api.appointments.createAppointment);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [showSuccessModal, setShowSuccessModal] = useState(false);
-    const [showErrorModal, setShowErrorModal] = useState(false);
-    const [errorMessage, setErrorMessage] = useState('');
-
-    // Convert Convex services to RITUALS format for UI
-    const RITUALS = useMemo(() => groupServicesByCategory(services), [services]);
 
     // Scroll to top when page loads
     useEffect(() => {
@@ -75,32 +69,25 @@ const BookingPage: React.FC = () => {
         );
     };
 
-    // Instagram Validation - Accepts all formats
+    // Instagram Validation
     const validateInstagram = (value: string) => {
-        if (!value.trim()) {
-            setInstagramError('Instagram requis');
+        // Simple regex for basic Instagram username format (letters, numbers, periods, underscores)
+        // Or full URL check
+        const usernameRegex = /^@?[\w\._]{1,30}$/;
+        const urlRegex = /^(https?:\/\/)?(www\.)?instagram\.com\/[\w\._]{1,30}\/?$/;
+
+        if (!value) {
+            setInstagramError('');
             return false;
         }
 
-        // Accept @username, full URLs, and share links with query params
-        const atPattern = /^@[a-zA-Z0-9._]+$/;
-        const urlPattern = /^https?:\/\/(www\.)?instagram\.com\/[a-zA-Z0-9._]+/; // Allows query params after username
-
-        if (atPattern.test(value) || urlPattern.test(value)) {
+        if (usernameRegex.test(value) || urlRegex.test(value)) {
             setInstagramError('');
             return true;
         } else {
-            setInstagramError('Format invalide (ex: @pseudo ou lien Instagram)');
+            setInstagramError('Format invalide (ex: @pseudo ou lien complet)');
             return false;
         }
-    };
-
-    // Phone Validation
-    const validatePhone = (value: string): boolean => {
-        // Must have at least +213 and 9 digits
-        const cleaned = value.replace(/\s/g, '');
-        const phonePattern = /^\+213\d{9,}$/;
-        return phonePattern.test(cleaned);
     };
 
     const handleInstagramChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -111,7 +98,6 @@ const BookingPage: React.FC = () => {
 
     const isFormValid = selectedDate &&
         formData.firstName && formData.lastName &&
-        formData.phone && validatePhone(formData.phone) && // Phone required and valid
         formData.instagram && !instagramError && // Instagram present and valid
         selectedTreatments.length > 0;
     // Price Calculation
@@ -247,18 +233,6 @@ const BookingPage: React.FC = () => {
                                         <button onClick={handleNextMonth} className="p-2 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors"><ChevronRight className="h-5 w-5" /></button>
                                     </div>
                                 </div>
-                                {/* Time Slots (Shows only when date selected) */}
-                                {/* Availability Text (Replaces Time Slots) */}
-                                <div className={`transition-all duration-500 overflow-hidden ${selectedDate ? 'max-h-32 opacity-100' : 'max-h-0 opacity-0'}`}>
-                                    <div className="flex flex-col items-center justify-center text-center p-6 border-t border-white/5 mt-4">
-                                        <span className="font-serif text-lg text-white">
-                                            Vous êtes disponible à partir de <span className="text-gold font-bold">09:00</span>
-                                        </span>
-                                        <p className="text-[10px] text-white/30 uppercase tracking-widest mt-2">
-                                            Nous confirmerons l'heure exacte par téléphone
-                                        </p>
-                                    </div>
-                                </div>
 
                                 {/* Days Grid */}
                                 <div className="grid grid-cols-7 mb-4 text-center">
@@ -295,7 +269,18 @@ const BookingPage: React.FC = () => {
                             </div>
                         </div>
 
-
+                        {/* Time Slots (Shows only when date selected) */}
+                        {/* Availability Text (Replaces Time Slots) */}
+                        <div className={`transition-all duration-500 overflow-hidden ${selectedDate ? 'max-h-32 opacity-100' : 'max-h-0 opacity-0'}`}>
+                            <div className="flex flex-col items-center justify-center text-center p-6 border-t border-white/5 mt-4">
+                                <span className="font-serif text-lg text-white">
+                                    Vous êtes disponible à partir de <span className="text-gold font-bold">09:00</span>
+                                </span>
+                                <p className="text-[10px] text-white/30 uppercase tracking-widest mt-2">
+                                    Nous confirmerons l'heure exacte par téléphone
+                                </p>
+                            </div>
+                        </div>
 
                     </div>
 
@@ -430,52 +415,15 @@ const BookingPage: React.FC = () => {
                                 )}
 
                                 <button
-                                    onClick={async () => {
-                                        if (!isFormValid || isSubmitting) return;
-
-                                        setIsSubmitting(true);
-                                        setErrorMessage('');
-
-                                        try {
-                                            const serviceIds = selectedTreatments
-                                                .map(name => services.find(s => s.name === name)?._id)
-                                                .filter(Boolean) as string[];
-
-                                            if (!selectedDate) {
-                                                throw new Error("Veuillez sélectionner une date");
-                                            }
-
-                                            await createAppointment({
-                                                firstName: formData.firstName,
-                                                lastName: formData.lastName,
-                                                phone: formData.phone,
-                                                email: formData.email || undefined,
-                                                instagram: formData.instagram,
-                                                serviceIds: serviceIds,
-                                                date: formatDateForConvex(selectedDate),
-                                                time: "09:00",
-                                                clientMessage: formData.description || undefined,
-                                            });
-
-                                            // Show success modal - DON'T navigate yet
-                                            setShowSuccessModal(true);
-                                        } catch (error: any) {
-                                            console.error("Error:", error);
-                                            setErrorMessage(error.message || "Une erreur s'est produite. Veuillez réessayer.");
-                                            setShowErrorModal(true);
-                                        } finally {
-                                            setIsSubmitting(false);
-                                        }
-                                    }}
                                     className={`w-full relative group overflow-hidden rounded-xl py-4 transition-all duration-300
-                                        ${isFormValid && !isSubmitting
+                                        ${isFormValid
                                             ? 'bg-gold text-slate-900 cursor-pointer hover:shadow-[0_0_30px_rgba(212,175,55,0.4)]'
                                             : 'bg-white/5 text-white/20 cursor-not-allowed opacity-50'}
                                     `}
-                                    disabled={!isFormValid || isSubmitting}
+                                    disabled={!isFormValid}
                                 >
                                     <span className="relative z-10 font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2">
-                                        {isSubmitting ? 'Envoi en cours...' : 'Confirmer le Rendez-vous'}
+                                        Confirmer le Rendez-vous
                                     </span>
                                 </button>
 
@@ -490,82 +438,8 @@ const BookingPage: React.FC = () => {
 
                 </div>
             </main>
-
-            {/* Success Modal */}
-            {showSuccessModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="relative max-w-md w-full mx-4 bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl border border-gold/30 shadow-[0_0_50px_rgba(212,175,55,0.3)] p-8 animate-in zoom-in-95 duration-300">
-                        {/* Gold accent line */}
-                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-gold to-transparent rounded-t-3xl" />
-
-                        <div className="text-center space-y-6">
-                            {/* Success Icon */}
-                            <div className="flex justify-center">
-                                <div className="rounded-full bg-gold/10 p-4">
-                                    <Check className="h-12 w-12 text-gold" />
-                                </div>
-                            </div>
-
-                            {/* Title */}
-                            <h2 className="font-serif text-3xl text-white">Rendez-vous Confirmé</h2>
-
-                            {/* Message */}
-                            <p className="text-white/60 leading-relaxed">
-                                Merci pour votre réservation. Nous vous contacterons très bientôt pour confirmer l'heure exacte de votre rendez-vous.
-                            </p>
-
-                            {/* Button */}
-                            <button
-                                onClick={() => {
-                                    setShowSuccessModal(false);
-                                    navigate('/');
-                                }}
-                                className="w-full bg-gold text-slate-900 py-4 rounded-xl font-bold uppercase tracking-widest text-sm hover:bg-white transition-all duration-300 hover:shadow-[0_0_30px_rgba(212,175,55,0.4)]"
-                            >
-                                Retour à l'accueil
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Error Modal */}
-            {showErrorModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="relative max-w-md w-full mx-4 bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl border border-red-500/30 shadow-[0_0_50px_rgba(239,68,68,0.3)] p-8 animate-in zoom-in-95 duration-300">
-                        {/* Red accent line */}
-                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent rounded-t-3xl" />
-
-                        <div className="text-center space-y-6">
-                            {/* Error Icon */}
-                            <div className="flex justify-center">
-                                <div className="rounded-full bg-red-500/10 p-4">
-                                    <AlertCircle className="h-12 w-12 text-red-500" />
-                                </div>
-                            </div>
-
-                            {/* Title */}
-                            <h2 className="font-serif text-3xl text-white">Erreur</h2>
-
-                            {/* Error Message */}
-                            <p className="text-white/60 leading-relaxed">
-                                {errorMessage || "Une erreur s'est produite lors de la réservation. Veuillez réessayer."}
-                            </p>
-
-                            {/* Button */}
-                            <button
-                                onClick={() => setShowErrorModal(false)}
-                                className="w-full bg-red-500 text-white py-4 rounded-xl font-bold uppercase tracking-widest text-sm hover:bg-red-600 transition-all duration-300"
-                            >
-                                Réessayer
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
 
 export default BookingPage;
-
