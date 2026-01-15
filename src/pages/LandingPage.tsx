@@ -86,7 +86,7 @@ const LandingPage: React.FC = () => {
             <div className="relative z-10 flex flex-col w-full">
 
                 {/* Hero Section */}
-                <section className="flex min-h-[100dvh] flex-col justify-center px-6 md:justify-end md:px-12 md:pb-20">
+                <section className="flex min-h-[100dvh] flex-col justify-center px-6 md:justify-end md:px-12 md:pb-20 relative">
                     <div className="flex w-full flex-col md:flex-row md:items-end md:justify-between">
 
                         {/* Text Content */}
@@ -107,7 +107,7 @@ const LandingPage: React.FC = () => {
                         </div>
 
                         {/* Desktop CTA */}
-                        <div className="hidden md:flex md:items-end md:shrink-0 relative z-50 pb-2">
+                        <div className="hidden md:block flex-shrink-0 min-w-fit ml-8">
                             <button
                                 onClick={() => navigate('/offers')}
                                 className="group flex items-center gap-4 rounded-full bg-[#A5F3FC] pl-8 pr-2 py-2 text-[#0F172A] transition-all hover:bg-white hover:scale-105 shadow-[0_0_30px_rgba(165,243,252,0.3)]"
