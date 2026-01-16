@@ -1,19 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { smoothScrollTo } from '../utils/smoothScroll';
 import MoonMenuIcon from '../components/MoonMenuIcon';
 import Footer from '../components/Footer';
-import visageBg from '../assets/visage_blonde.png';
-import corpsBg from '../assets/body_fit.png';
-import peauBg from '../assets/skin_glow.png';
 
+
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import { RITUALS, Ritual } from '../utils/constants';
 
 const OffersPage: React.FC = () => {
     const navigate = useNavigate();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [selectedRitual, setSelectedRitual] = useState<Ritual | null>(null);
+
+    // Fetch Dynamic Services from Convex
+    const services = useQuery(api.services.getAllServices) || [];
+
+    // Merge DB services with Static Metadata (Images, Titles)
+    const dynamicRituals = React.useMemo(() => {
+        return RITUALS.map(ritual => {
+            // Match category names: 'visage' -> 'Visage'
+            // const dbCategory = ritual.title.charAt(0) + ritual.title.slice(1).toLowerCase(); 
+
+
+            const dbTreatments = services
+                .filter(s => s.category.toLowerCase() === ritual.id.toLowerCase())
+                .map(s => ({
+                    name: s.name,
+                    price: s.price === 0 ? "Offert" : `${s.price.toLocaleString('fr-FR').replace(/\s/g, ' ')} DA`,
+                    description: s.description
+                }));
+
+            return {
+                ...ritual,
+                treatments: dbTreatments.length > 0 ? dbTreatments : ritual.treatments
+            };
+        });
+    }, [services]);
 
     // Scroll to top when page loads
     useEffect(() => {
@@ -70,7 +95,7 @@ const OffersPage: React.FC = () => {
                 </div>
 
                 {/* Sections Stack */}
-                {RITUALS.map((ritual) => (
+                {dynamicRituals.map((ritual) => (
                     <div
                         key={ritual.id}
                         onClick={() => setSelectedRitual(ritual)}
