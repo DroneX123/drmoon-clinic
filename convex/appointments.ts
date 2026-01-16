@@ -64,6 +64,26 @@ export const getConfirmedByDate = query({
     },
 });
 
+export const confirmAppointment = mutation({
+    args: {
+        id: v.id("appointments"),
+        date: v.string(),
+        time: v.string(),
+        serviceIds: v.optional(v.array(v.id("services"))),
+    },
+    handler: async (ctx, args) => {
+        const updates: any = {
+            status: "confirmed",
+            date: args.date,
+            time: args.time,
+        };
+        if (args.serviceIds) {
+            updates.service_ids = args.serviceIds;
+        }
+        await ctx.db.patch(args.id, updates);
+    },
+});
+
 export const createAppointment = mutation({
     args: {
         firstName: v.string(),

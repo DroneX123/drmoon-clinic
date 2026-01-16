@@ -6,13 +6,39 @@ import { Check, X, Calendar, Phone, MessageCircle, Instagram } from 'lucide-reac
 const AdminRequestsPage: React.FC = () => {
     const pendingAppointments = useQuery(api.appointments.getPending);
     const updateStatus = useMutation(api.appointments.updateStatus);
+    const confirmAppointment = useMutation(api.appointments.confirmAppointment);
+
     const [phoneMenuId, setPhoneMenuId] = useState<string | null>(null);
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
+    // Modal State
+    const [confirmModalData, setConfirmModalData] = useState<any | null>(null);
+    const [newDate, setNewDate] = useState('');
+    const [newTime, setNewTime] = useState('');
+
     const handleAction = async (id: any, newStatus: string) => {
-        // Confirmation handling is now in UI
-        await updateStatus({ id, status: newStatus });
-        if (newStatus === 'cancelled') setDeleteConfirmId(null);
+        if (newStatus === 'cancelled') {
+            await updateStatus({ id, status: newStatus });
+            setDeleteConfirmId(null);
+        } else if (newStatus === 'confirmed') {
+            // Find appt data
+            const appt = pendingAppointments?.find(p => p._id === id);
+            if (appt) {
+                setConfirmModalData(appt);
+                setNewDate(appt.date);
+                setNewTime(appt.time);
+            }
+        }
+    };
+
+    const handleConfirmSave = async () => {
+        if (!confirmModalData) return;
+        await confirmAppointment({
+            id: confirmModalData._id,
+            date: newDate,
+            time: newTime,
+        });
+        setConfirmModalData(null);
     };
 
     if (pendingAppointments === undefined) {
@@ -25,6 +51,58 @@ const AdminRequestsPage: React.FC = () => {
                 <h1 className="font-serif text-3xl text-slate-900 mb-1">Demandes de Rendez-vous</h1>
                 <p className="text-slate-500 text-sm">Gérez les demandes en attente d'approbation.</p>
             </div>
+
+            {/* Confirmation Modal */}
+            {confirmModalData && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in zoom-in-95">
+                        <h2 className="text-xl font-serif text-slate-900 mb-4">Confirmer le Rendez-vous</h2>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Client</label>
+                                <p className="font-bold text-slate-800">{confirmModalData.client?.first_name} {confirmModalData.client?.last_name}</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Date</label>
+                                    <input
+                                        type="date"
+                                        value={newDate}
+                                        onChange={(e) => setNewDate(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-gold/50"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Heure</label>
+                                    <input
+                                        type="time"
+                                        value={newTime}
+                                        onChange={(e) => setNewTime(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-gold/50"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 mt-8">
+                            <button
+                                onClick={() => setConfirmModalData(null)}
+                                className="flex-1 px-4 py-3 rounded-xl bg-slate-100 text-slate-600 font-bold text-sm hover:bg-slate-200 transition-colors"
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                onClick={handleConfirmSave}
+                                className="flex-1 px-4 py-3 rounded-xl bg-emerald-500 text-white font-bold text-sm hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20"
+                            >
+                                Confirmer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {pendingAppointments.length === 0 ? (
                 <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center">
