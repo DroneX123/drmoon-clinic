@@ -279,21 +279,32 @@ const AdminAppointmentsPage: React.FC = () => {
                                 <h3 className="text-xs font-bold uppercase text-slate-400 mb-3 tracking-wider flex items-center gap-2">
                                     <CalendarIcon className="w-3 h-3" /> Détails Rendez-vous
                                 </h3>
-                                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 mb-4 flex items-center justify-between">
-                                    <div>
-                                        <p className="text-xs text-slate-400 uppercase font-bold mb-1">Date Sélectionnée</p>
-                                        <p className="font-bold text-slate-900 text-lg capitalize">
-                                            {selectedDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
-                                        </p>
+                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                    {/* Date */}
+                                    <div className="border border-slate-200 rounded-xl p-4 bg-white hover:border-gold/50 transition-colors">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-xs font-bold uppercase text-slate-400">Date</span>
+                                            <CalendarIcon className="w-4 h-4 text-gold" />
+                                        </div>
+                                        <input
+                                            type="date"
+                                            value={formatDateForConvex(selectedDate)}
+                                            onChange={(e) => setSelectedDate(new Date(e.target.value))}
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-gold/20 cursor-pointer"
+                                        />
                                     </div>
-                                    <div className="w-px h-10 bg-slate-200 mx-4"></div>
-                                    <div className="flex-1">
-                                        <p className="text-xs text-slate-400 uppercase font-bold mb-1">Heure</p>
+
+                                    {/* Time */}
+                                    <div className="border border-slate-200 rounded-xl p-4 bg-white hover:border-gold/50 transition-colors">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-xs font-bold uppercase text-slate-400">Heure</span>
+                                            <Clock className="w-4 h-4 text-gold" />
+                                        </div>
                                         <input
                                             type="time"
                                             value={apptTime}
                                             onChange={(e) => setApptTime(e.target.value)}
-                                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-gold/30"
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-gold/20 cursor-pointer"
                                         />
                                     </div>
                                 </div>

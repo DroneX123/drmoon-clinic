@@ -20,9 +20,7 @@ const AdminRequestsPage: React.FC = () => {
     const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
     const [adminNotes, setAdminNotes] = useState('');
 
-    // Toggle States for Modal
-    const [isDateOpen, setIsDateOpen] = useState(false);
-    const [isTimeOpen, setIsTimeOpen] = useState(false);
+
 
     const handleAction = async (id: any, newStatus: string) => {
         if (newStatus === 'cancelled') {
@@ -38,8 +36,7 @@ const AdminRequestsPage: React.FC = () => {
                 const services = appt.service_ids ? appt.service_ids : (appt.services ? appt.services.map((s: any) => s._id) : []);
                 setSelectedServiceIds(services);
                 setAdminNotes(appt.client_message || ''); // Pre-fill with client message if any, or empty
-                setIsDateOpen(false);
-                setIsTimeOpen(false);
+
             }
         }
     };
@@ -100,46 +97,34 @@ const AdminRequestsPage: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Date & Time Toggles */}
+                            {/* Date & Time Inputs */}
                             <div className="grid grid-cols-2 gap-4">
                                 {/* Date */}
-                                <div className="border border-slate-200 rounded-xl p-4 hover:border-gold/50 transition-colors cursor-pointer bg-white" onClick={() => setIsDateOpen(!isDateOpen)}>
-                                    <div className="flex items-center justify-between mb-1">
+                                <div className="border border-slate-200 rounded-xl p-4 bg-white hover:border-gold/50 transition-colors">
+                                    <div className="flex items-center justify-between mb-2">
                                         <span className="text-xs font-bold uppercase text-slate-400">Date</span>
                                         <Calendar className="w-4 h-4 text-gold" />
                                     </div>
-                                    <div className="font-bold text-slate-900 text-lg">{newDate}</div>
-
-                                    {isDateOpen && (
-                                        <div className="mt-4 pt-4 border-t border-slate-100 animate-in slide-in-from-top-2" onClick={(e) => e.stopPropagation()}>
-                                            <input
-                                                type="date"
-                                                value={newDate}
-                                                onChange={(e) => setNewDate(e.target.value)}
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-gold/20"
-                                            />
-                                        </div>
-                                    )}
+                                    <input
+                                        type="date"
+                                        value={newDate}
+                                        onChange={(e) => setNewDate(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-gold/20 cursor-pointer"
+                                    />
                                 </div>
 
                                 {/* Time */}
-                                <div className="border border-slate-200 rounded-xl p-4 hover:border-gold/50 transition-colors cursor-pointer bg-white" onClick={() => setIsTimeOpen(!isTimeOpen)}>
-                                    <div className="flex items-center justify-between mb-1">
+                                <div className="border border-slate-200 rounded-xl p-4 bg-white hover:border-gold/50 transition-colors">
+                                    <div className="flex items-center justify-between mb-2">
                                         <span className="text-xs font-bold uppercase text-slate-400">Heure</span>
                                         <Clock className="w-4 h-4 text-gold" />
                                     </div>
-                                    <div className="font-bold text-slate-900 text-lg">{newTime}</div>
-
-                                    {isTimeOpen && (
-                                        <div className="mt-4 pt-4 border-t border-slate-100 animate-in slide-in-from-top-2" onClick={(e) => e.stopPropagation()}>
-                                            <input
-                                                type="time"
-                                                value={newTime}
-                                                onChange={(e) => setNewTime(e.target.value)}
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-gold/20"
-                                            />
-                                        </div>
-                                    )}
+                                    <input
+                                        type="time"
+                                        value={newTime}
+                                        onChange={(e) => setNewTime(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-gold/20 cursor-pointer"
+                                    />
                                 </div>
                             </div>
 
