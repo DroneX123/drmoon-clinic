@@ -109,7 +109,12 @@ const AdminRequestsPage: React.FC = () => {
                                     </h5>
                                     <AdminCalendar
                                         value={newDate ? new Date(newDate) : new Date()}
-                                        onChange={(d) => setNewDate(d.toISOString().split('T')[0])}
+                                        onChange={(d) => {
+                                            const year = d.getFullYear();
+                                            const month = String(d.getMonth() + 1).padStart(2, '0');
+                                            const day = String(d.getDate()).padStart(2, '0');
+                                            setNewDate(`${year}-${month}-${day}`);
+                                        }}
                                     />
                                 </div>
 
@@ -128,13 +133,13 @@ const AdminRequestsPage: React.FC = () => {
 
                             {/* Services Select */}
                             <div>
-                                <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
+                                <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2 mt-6">
                                     <span className="w-1 h-4 bg-gold rounded-full"></span>
                                     Services
                                 </h4>
                                 <div className="space-y-4">
                                     {groupedServices.map((group: any) => (
-                                        <div key={group.id} className="border border-slate-100 rounded-xl p-4 bg-slate-50/50">
+                                        <div key={group.id} className="border border-slate-100 rounded-xl p-4 bg-white">
                                             <h5 className="font-bold text-slate-700 mb-3 uppercase text-xs tracking-wider">{group.title}</h5>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                 {group.treatments.map((svc: any) => {
@@ -161,7 +166,7 @@ const AdminRequestsPage: React.FC = () => {
                             </div>
 
                             {/* Admin Notes */}
-                            <div>
+                            <div className="mt-6">
                                 <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
                                     <span className="w-1 h-4 bg-slate-400 rounded-full"></span>
                                     Notes Internes
@@ -184,9 +189,9 @@ const AdminRequestsPage: React.FC = () => {
                             </button>
                             <button
                                 onClick={handleConfirmSave}
-                                className="flex-1 px-4 py-3 rounded-xl bg-grad-gold text-white font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-gold/20 flex items-center justify-center gap-2"
+                                className="flex-1 px-4 py-3 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/20 flex items-center justify-center gap-2"
                             >
-                                <Check className="w-4 h-4" />
+                                <Check className="w-4 h-4 text-gold" />
                                 Confirmer & Enregistrer
                             </button>
                         </div>
