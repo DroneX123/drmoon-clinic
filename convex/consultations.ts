@@ -1,4 +1,4 @@
-import { mutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 export const completeAppointment = mutation({
@@ -16,12 +16,16 @@ export const completeAppointment = mutation({
         // Next Appointment (Optional)
         nextAppointmentDate: v.optional(v.string()),
         nextAppointmentTime: v.optional(v.string()),
+        nextAppointmentServices: v.optional(v.array(v.id("services"))),
+
+        // Updated Current Appointment (Optional)
+        updatedCurrentServices: v.optional(v.array(v.id("services"))),
 
         // Notes
         adminNotes: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
-        const { appointmentId, productsUsed, finalAmount, paymentMethod, nextAppointmentDate, nextAppointmentTime, adminNotes } = args;
+        const { appointmentId, productsUsed, finalAmount, paymentMethod, nextAppointmentDate, nextAppointmentTime, adminNotes, nextAppointmentServices, updatedCurrentServices } = args;
 
         // 1. Get the appointment to ensure it exists and get client info
         const appointment = await ctx.db.get(appointmentId);
@@ -56,18 +60,18 @@ export const completeAppointment = mutation({
 
         // 4. Update Current Appointment Status -> "completed"
         // Also update admin notes if provided
+        // Also update services if provided (admin edited them during consultation)
         await ctx.db.patch(appointmentId, {
             status: "completed",
-            admin_notes: adminNotes ? adminNotes : appointment.admin_notes, // Update if new notes
+            admin_notes: adminNotes ? adminNotes : appointment.admin_notes,
+            service_ids: updatedCurrentServices ? updatedCurrentServices : appointment.service_ids,
         });
 
         // 5. Create Next Appointment (Optional)
         if (nextAppointmentDate && nextAppointmentTime) {
             await ctx.db.insert("appointments", {
                 client_id: appointment.client_id,
-                service_ids: appointment.service_ids, // Repeat same services? Or empty? usually logic dictates copy or ask. 
-                // Creating a "Follow-up" often implies similar context. Let's reuse services or maybe generic 'Follow up' service if we had one.
-                // For now, let's copy the services as a baseline default.
+                service_ids: nextAppointmentServices ? nextAppointmentServices : appointment.service_ids,
                 status: "confirmed", // Automatically confirmed as it's booked by admin
                 date: nextAppointmentDate,
                 time: nextAppointmentTime,
@@ -76,5 +80,33 @@ export const completeAppointment = mutation({
         }
 
         return "Appointment completed successfully";
+    },
+});
+
+export const getAll = query({
+    args: {},
+    handler: async (ctx) => {
+        const consultations = await ctx.db.query("consultations").order("desc").collect();
+
+        // Enrich with client and appointment details
+        return Promise.all(consultations.map(async (c) => {
+            const appointment = await ctx.db.get(c.appointment_id);
+            let client = null;
+            let services = [];
+
+            if (appointment) {
+                client = await ctx.db.get(appointment.client_id);
+                services = await Promise.all(
+                    appointment.service_ids.map((id: any) => ctx.db.get(id))
+                );
+            }
+
+            return {
+                ...c,
+                client,
+                appointment,
+                services: services.filter(Boolean),
+            };
+        }));
     },
 });

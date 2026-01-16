@@ -61,8 +61,8 @@ const AdminLoginPage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen w-full bg-slate-950 flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-slate-900/50 backdrop-blur-sm border border-white/10 p-8 rounded-2xl shadow-xl">
+        <div className="min-h-screen w-full bg-slate-950 flex flex-col items-center justify-center p-4 overflow-y-auto">
+            <div className="w-full max-w-md bg-slate-900/50 backdrop-blur-sm border border-white/10 p-8 rounded-2xl shadow-xl my-auto">
 
                 <div className="text-center mb-8">
                     <h1 className="font-serif text-3xl text-gold mb-2">Dr. Moon Portal</h1>

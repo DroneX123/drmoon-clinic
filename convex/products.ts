@@ -9,7 +9,15 @@ export const getAll = query({
     },
 });
 
-// Seed some dummy products for testing
+/**
+ * GET ALL SUPPLIERS
+ */
+export const getAllSuppliers = query({
+    args: {},
+    handler: async (ctx) => {
+        return await ctx.db.query("suppliers").collect();
+    },
+});
 export const seedProducts = mutation({
     args: {},
     handler: async (ctx) => {
@@ -53,5 +61,48 @@ export const seedProducts = mutation({
         });
 
         return "Products seeded successfully";
+    },
+});
+/**
+ * CREATE PRODUCT
+ */
+export const createProduct = mutation({
+    args: {
+        name: v.string(),
+        stock_quantity: v.number(),
+        buy_price: v.number(),
+        selling_price: v.optional(v.number()),
+        supplier_id: v.id("suppliers"),
+    },
+    handler: async (ctx, args) => {
+        return await ctx.db.insert("products", args);
+    },
+});
+
+/**
+ * UPDATE PRODUCT
+ */
+export const updateProduct = mutation({
+    args: {
+        id: v.id("products"),
+        name: v.optional(v.string()),
+        stock_quantity: v.optional(v.number()),
+        buy_price: v.optional(v.number()),
+        selling_price: v.optional(v.number()),
+        supplier_id: v.optional(v.id("suppliers")),
+    },
+    handler: async (ctx, args) => {
+        const { id, ...fields } = args;
+        await ctx.db.patch(id, fields);
+    },
+});
+
+/**
+ * DELETE PRODUCT
+ */
+export const deleteProduct = mutation({
+    args: { id: v.id("products") },
+    handler: async (ctx, args) => {
+        await ctx.db.delete(args.id);
     },
 });

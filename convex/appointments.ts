@@ -1,16 +1,37 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
-// Helper to enrich appointment with client and service data
+// Helper to enrich appointment with client, service data, and consultation details if completed
 async function enrichAppointment(ctx: any, appt: any) {
     const client = await ctx.db.get(appt.client_id);
     const services = await Promise.all(
         appt.service_ids.map((id: any) => ctx.db.get(id))
     );
+
+    let consultation = null;
+    if (appt.status === "completed") {
+        consultation = await ctx.db
+            .query("consultations")
+            .filter((q: any) => q.eq(q.field("appointment_id"), appt._id))
+            .first();
+
+        // If we want product names, we might need to fetch them too, but let's start with basic completion data
+        if (consultation && consultation.products_used) {
+            const enrichedProducts = await Promise.all(
+                consultation.products_used.map(async (p: any) => {
+                    const product = await ctx.db.get(p.product_id);
+                    return { ...p, name: product?.name || "Unknown Product" };
+                })
+            );
+            consultation.products_processed = enrichedProducts;
+        }
+    }
+
     return {
         ...appt,
         client,
         services: services.filter(Boolean),
+        consultation,
     };
 }
 
@@ -54,7 +75,10 @@ export const getConfirmedByDate = query({
             .query("appointments")
             .filter((q) =>
                 q.and(
-                    q.eq(q.field("status"), "confirmed"),
+                    q.or(
+                        q.eq(q.field("status"), "confirmed"),
+                        q.eq(q.field("status"), "completed")
+                    ),
                     q.eq(q.field("date"), args.date)
                 )
             )

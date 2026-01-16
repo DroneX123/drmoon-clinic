@@ -31,6 +31,7 @@ export default defineSchema({
         name: v.string(),
         stock_quantity: v.number(),
         buy_price: v.number(), // Cost
+        selling_price: v.optional(v.number()), // Price for client
         supplier_id: v.id("suppliers"),
     }),
 

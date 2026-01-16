@@ -12,15 +12,15 @@ const AdminDashboard: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 opacity-30 pointer-events-none">
                 {/* Placeholders to show structure but dimmed */}
                 <div className="bg-white p-6 rounded-2xl border border-slate-200">
-                    <h3 className="text-slate-400 font-bold text-xs uppercase mb-2">Rendez-vous</h3>
+                    <h3 className="text-slate-400 font-bold text-xs uppercase mb-2">Rendez-vous en attente aujourd'hui</h3>
                     <p className="text-3xl font-light text-slate-900">--</p>
                 </div>
                 <div className="bg-white p-6 rounded-2xl border border-slate-200">
-                    <h3 className="text-slate-400 font-bold text-xs uppercase mb-2">En Attente</h3>
+                    <h3 className="text-slate-400 font-bold text-xs uppercase mb-2">rendez-vous aujourd'hui</h3>
                     <p className="text-3xl font-light text-slate-900">--</p>
                 </div>
                 <div className="bg-white p-6 rounded-2xl border border-slate-200">
-                    <h3 className="text-black font-bold text-xs uppercase mb-2">Revenus</h3>
+                    <h3 className="text-black font-bold text-xs uppercase mb-2"></h3>
                     <p className="text-3xl font-light text-slate-900">--</p>
                 </div>
                 

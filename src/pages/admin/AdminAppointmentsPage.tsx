@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Phone, Plus, X, Check, DollarSign, Package } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Plus, X, Check, DollarSign, Package } from 'lucide-react';
 import { formatDateForConvex, groupServicesByCategory } from '../../utils/convexHelpers';
 import AdminCalendar from '../../components/AdminCalendar';
 import AdminTimeSelector from '../../components/AdminTimeSelector';
@@ -32,54 +32,87 @@ const AdminAppointmentsPage: React.FC = () => {
     const [receiptProducts, setReceiptProducts] = useState<{ productId: string, quantity: number }[]>([]);
     const [receiptFinalPrice, setReceiptFinalPrice] = useState(0);
     const [receiptNextDate, setReceiptNextDate] = useState<Date | null>(null);
-    const [receiptNextTime, setReceiptNextTime] = useState('');
-    const [receiptNotes, setReceiptNotes] = useState('');
+    const [receiptNextTime, setReceiptNextTime] = useState('10:00');
+    const [receiptNextServices, setReceiptNextServices] = useState<any[]>([]); // New: For next appointment
+    const [receiptCurrentServices, setReceiptCurrentServices] = useState<any[]>([]); // New: To edit current appointment
+    const [receiptNotes] = useState('');
     const [isNextApptPickerOpen, setIsNextApptPickerOpen] = useState(false);
+
+
+
+    // Helper to safely parse price
+    const parsePrice = (price: any): number => {
+        if (typeof price === 'number') return price;
+        if (!price) return 0;
+        const str = String(price).replace(/[^\d.-]/g, '');
+        const num = parseFloat(str);
+        return isNaN(num) ? 0 : num;
+    };
 
     // Pre-fill receipt when opening
     const openReceiptModal = (appt: any) => {
-        // Calculate initial price (sum of services)
-        const initialPrice = appt.services.reduce((acc: number, s: any) => acc + s.price, 0);
-        setReceiptFinalPrice(initialPrice);
-        setReceiptProducts([]); // Start with no extra products
+        setViewModalAppt(appt);
+        setIsModalOpen(false); // Close details modal
+
+        // Reset/Init Receipt Logic
+        setReceiptProducts([]);
+        setReceiptFinalPrice(appt.services.reduce((acc: number, s: any) => acc + parsePrice(s.price), 0)); // Initial price from current services
         setReceiptNextDate(null);
-        setReceiptNextTime('');
-        setReceiptNotes('');
-        setIsNextApptPickerOpen(false);
+        setReceiptNextTime('10:00');
+        setReceiptNextServices([]); // Default empty for next appt (admin chooses)
+        setReceiptCurrentServices(appt.services); // Init with current services
+
         setIsReceiptModalOpen(true);
-        // We keep viewModalAppt set so we know which appt we are finishing
+        setIsNextApptPickerOpen(false);
     };
 
     const handleFinishAppointment = async () => {
-        if (!viewModalAppt) return;
+        if (!viewModalAppt) {
+            console.error("No appointment selected for completion");
+            return;
+        }
 
-        await completeAppointment({
-            appointmentId: viewModalAppt._id,
-            productsUsed: receiptProducts as any,
-            finalAmount: receiptFinalPrice,
-            paymentMethod: "Cash", // Defaulting for now
-            nextAppointmentDate: receiptNextDate ? formatDateForConvex(receiptNextDate) : undefined,
-            nextAppointmentTime: receiptNextTime || undefined,
-            adminNotes: receiptNotes,
+        // Helper to format date as YYYY-MM-DD in LOCAL time to avoid UTC shifts
+        const formatDateLocal = (date: Date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
+        console.log("Attempting to finish appointment...", {
+            id: viewModalAppt._id,
+            products: receiptProducts,
+            amount: receiptFinalPrice,
+            amountType: typeof receiptFinalPrice, // Check if number or string
+            nextDate: receiptNextDate,
+            nextTime: receiptNextTime
         });
 
-        setIsReceiptModalOpen(false);
-        setViewModalAppt(null); // Close everything
+        try {
+            await completeAppointment({
+                appointmentId: viewModalAppt._id,
+                productsUsed: receiptProducts as any,
+                finalAmount: Number(receiptFinalPrice), // Ensure number
+                paymentMethod: 'Cash', // Default for now
+                adminNotes: receiptNotes,
+                nextAppointmentDate: receiptNextDate ? formatDateLocal(receiptNextDate) : undefined,
+                nextAppointmentTime: receiptNextDate ? receiptNextTime : undefined,
+                nextAppointmentServices: receiptNextServices.length > 0 ? receiptNextServices.map(s => s._id) : undefined,
+                updatedCurrentServices: receiptCurrentServices.map(s => s._id),
+            });
+            console.log("Appointment completed successfully!");
+            setIsReceiptModalOpen(false);
+            setViewModalAppt(null); // Clear selection
+        } catch (error) {
+            console.error("Error completing appointment:", error);
+            alert("Une erreur est survenue lors de la finalisation du rendez-vous. Vérifiez la console pour les détails.");
+        }
     };
 
-    const handleAddProduct = (productId: string) => {
-        setReceiptProducts(prev => {
-            const existing = prev.find(p => p.productId === productId);
-            if (existing) {
-                return prev.map(p => p.productId === productId ? { ...p, quantity: p.quantity + 1 } : p);
-            }
-            return [...prev, { productId, quantity: 1 }];
-        });
-    };
 
-    const handleRemoveProduct = (productId: string) => {
-        setReceiptProducts(prev => prev.filter(p => p.productId !== productId));
-    };
+
+
 
     // New Appointment Form State
     const [clientFirstName, setClientFirstName] = useState('');
@@ -314,8 +347,22 @@ const AdminAppointmentsPage: React.FC = () => {
                                 </div>
 
                                 {/* Action Arrow */}
-                                <div className="pl-4 border-l border-slate-100 hidden md:flex items-center justify-center">
-                                    <ChevronRight className={`w-6 h-6 transition-transform group-hover:translate-x-1 ${isMissed ? 'text-red-300' : 'text-slate-300 group-hover:text-gold'}`} />
+                                <div className="pl-4 border-l border-slate-100 hidden md:flex items-center justify-center min-w-[30px]">
+                                    {appt.status === 'completed' ? (
+                                        <div className="flex flex-col items-end gap-1">
+                                            <div className="flex items-center gap-1 text-green-600 font-bold text-sm">
+                                                <span className="text-xs">Payé:</span>
+                                                <span>{appt.consultation?.amount_paid?.toLocaleString()} DA</span>
+                                            </div>
+                                            {appt.consultation?.products_processed?.length > 0 && (
+                                                <div className="text-[10px] text-slate-400 text-right max-w-[120px]">
+                                                    + {appt.consultation.products_processed.length} produits
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <ChevronRight className={`w-6 h-6 transition-transform group-hover:translate-x-1 ${isMissed ? 'text-red-300' : 'text-slate-300 group-hover:text-gold'}`} />
+                                    )}
                                 </div>
                             </div>
                         )
@@ -465,318 +512,527 @@ const AdminAppointmentsPage: React.FC = () => {
             )}
 
             {/* RECEIPT / FINISH MODAL */}
+            {/* RECEIPT / FINISH MODAL */}
+            {/* RECEIPT / FINISH MODAL */}
             {isReceiptModalOpen && viewModalAppt && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full p-8 flex flex-col md:flex-row gap-8 max-h-[90vh] overflow-hidden">
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full p-0 flex flex-col max-h-[90vh] overflow-hidden relative">
 
-                        {/* Left: Receipt & Stock */}
-                        <div className="flex-1 flex flex-col overflow-y-auto pr-2 custom-scrollbar">
-                            <h2 className="font-serif text-2xl text-slate-900 mb-6 flex items-center gap-2">
-                                <Package className="w-6 h-6 text-gold" />
-                                Consultation & Stock
-                            </h2>
+                        {/* Header */}
+                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white relative">
+                            <div>
+                                <h2 className="font-serif text-2xl text-slate-900 mb-1">Consultation Personnalisée</h2>
+                                <p className="text-slate-500 text-sm">
+                                    Patient: <span className="font-bold text-slate-900">{viewModalAppt.client?.first_name} {viewModalAppt.client?.last_name}</span>
+                                </p>
+                            </div>
+                            <div className="text-right pr-6 md:pr-12">
+                                <p className="text-xs text-slate-400 uppercase tracking-widest mb-1">Total à Payer</p>
+                                <p className="font-serif text-3xl text-slate-900 font-bold">{receiptFinalPrice.toLocaleString()} <span className="text-gold text-lg">DA</span></p>
+                            </div>
+                            <button
+                                onClick={() => setIsReceiptModalOpen(false)}
+                                className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-900 transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
 
-                            {/* Products Section */}
-                            <div className="mb-8">
-                                <h3 className="text-xs font-bold uppercase text-slate-400 mb-3 tracking-wider">Produits Utilisés (Stock)</h3>
-                                <div className="flex flex-wrap gap-2 mb-4">
-                                    {allProducts?.map(product => (
-                                        <button
-                                            key={product._id}
-                                            onClick={() => handleAddProduct(product._id)}
-                                            className="bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 transition-colors flex items-center gap-2"
-                                        >
-                                            <Plus className="w-3 h-3 text-gold" />
-                                            {product.name}
-                                            <span className="text-xs text-slate-400">({product.stock_quantity})</span>
-                                        </button>
+                        {/* Main Content - Two Columns */}
+                        <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+
+                            {/* LEFT: SERVICES CATALOG */}
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 border-r border-slate-100 bg-slate-50">
+                                <h3 className="text-xs font-bold uppercase text-gold mb-6 tracking-widest flex items-center gap-2">
+                                    <Check className="w-4 h-4" /> Sélection des Services
+                                </h3>
+
+                                <div className="space-y-8">
+                                    {groupedServices.map((group: any) => (
+                                        <div key={group.id}>
+                                            <h4 className="text-slate-400 text-xs font-bold uppercase mb-3 pl-1">{group.title}</h4>
+                                            <div className="space-y-3">
+                                                {group.treatments.map((svc: any) => {
+                                                    const isSelected = receiptCurrentServices.some(s => s._id === svc._id);
+                                                    return (
+                                                        <div
+                                                            key={svc._id}
+                                                            onClick={() => {
+                                                                let newServices;
+                                                                if (isSelected) {
+                                                                    newServices = receiptCurrentServices.filter(s => s._id !== svc._id);
+                                                                } else {
+                                                                    newServices = [...receiptCurrentServices, svc];
+                                                                }
+                                                                setReceiptCurrentServices(newServices);
+
+                                                                // Recalculate Total
+                                                                const servicesTotal = newServices.reduce((acc, s) => acc + parsePrice(s.price), 0);
+                                                                const productsTotal = receiptProducts.reduce((acc, p) => {
+                                                                    const prod = allProducts?.find(ap => ap._id === p.productId);
+                                                                    const price = parsePrice(prod?.selling_price);
+                                                                    return acc + (price * p.quantity);
+                                                                }, 0);
+                                                                setReceiptFinalPrice(servicesTotal + productsTotal);
+                                                            }}
+                                                            className={`p-4 rounded-xl border cursor-pointer transition-all duration-200 group relative overflow-hidden
+                                                                ${isSelected
+                                                                    ? 'bg-slate-900 border-slate-900 shadow-md transform scale-[1.02]'
+                                                                    : 'bg-white border-slate-200 hover:border-gold/50 hover:shadow-md'
+                                                                }`}
+                                                        >
+                                                            <div className="flex justify-between items-start gap-4 relative z-10">
+                                                                <div className="flex items-start gap-3">
+                                                                    <div className={`mt-0.5 w-5 h-5 rounded border flex items-center justify-center transition-colors
+                                                                        ${isSelected ? 'bg-gold border-gold text-slate-900' : 'border-slate-300 text-transparent'}`}>
+                                                                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <h5 className={`font-bold text-sm mb-1 ${isSelected ? 'text-white' : 'text-slate-900'}`}>{svc.name}</h5>
+                                                                        <p className={`text-xs leading-relaxed max-w-[250px] ${isSelected ? 'text-white/60' : 'text-slate-500'}`}>
+                                                                            {svc.description || "Aucune description."}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                                <span className={`font-serif font-bold text-sm ${isSelected ? 'text-gold' : 'text-slate-900'}`}>
+                                                                    {parsePrice(svc.price).toLocaleString()} DA
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
                                     ))}
                                 </div>
+                            </div>
 
-                                {/* Selected Products List */}
-                                <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-100 min-h-[100px]">
-                                    {receiptProducts.length === 0 && <p className="text-sm text-slate-400 italic">Aucun produit sélectionné.</p>}
-                                    {receiptProducts.map(item => {
-                                        const product = allProducts?.find(p => p._id === item.productId);
+                            {/* RIGHT: PRODUCTS USED */}
+                            <div className="w-full md:w-[400px] bg-white border-l border-slate-100 p-6 overflow-y-auto custom-scrollbar relative">
+                                {/* POPUP PICKER OVERLAY - Light Theme */}
+                                {isNextApptPickerOpen && (
+                                    <div className="absolute inset-0 z-20 bg-white/95 backdrop-blur-md flex flex-col p-4 animate-in fade-in zoom-in-95 duration-200">
+                                        <h3 className="font-bold text-slate-900 mb-4 flex items-center justify-between">
+                                            <span>Choisir Date & Heure</span>
+                                            <button onClick={() => setIsNextApptPickerOpen(false)} className="p-1 hover:bg-slate-100 rounded-full transition-colors">
+                                                <X className="w-5 h-5 text-slate-400 hover:text-slate-900" />
+                                            </button>
+                                        </h3>
+
+                                        <div className="flex-1 overflow-y-auto custom-scrollbar space-y-6">
+                                            <div className="scale-90 origin-top-left -mb-6">
+                                                <AdminCalendar
+                                                    value={receiptNextDate || new Date()}
+                                                    onChange={(d) => setReceiptNextDate(d)}
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <p className="text-xs font-bold text-slate-400 uppercase mb-2">Heure</p>
+                                                <input
+                                                    type="time"
+                                                    value={receiptNextTime}
+                                                    onChange={(e) => setReceiptNextTime(e.target.value)}
+                                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 outline-none focus:border-gold"
+                                                />
+                                            </div>
+
+                                            {/* Next Services Selection */}
+                                            <div>
+                                                <p className="text-xs font-bold text-slate-400 uppercase mb-2">Services (Prochain RDV)</p>
+                                                <div className="space-y-1 max-h-[150px] overflow-y-auto border border-slate-100 rounded-xl p-2 bg-slate-50">
+                                                    {groupedServices.map((group: any) => (
+                                                        <div key={group.id}>
+                                                            <p className="text-[10px] uppercase font-bold text-slate-400 mt-2 mb-1 pl-1">{group.title}</p>
+                                                            {group.treatments.map((svc: any) => {
+                                                                const isSelected = receiptNextServices.some(s => s._id === svc._id);
+                                                                return (
+                                                                    <button
+                                                                        key={svc._id}
+                                                                        onClick={() => {
+                                                                            if (isSelected) {
+                                                                                setReceiptNextServices(prev => prev.filter(s => s._id !== svc._id));
+                                                                            } else {
+                                                                                setReceiptNextServices(prev => [...prev, svc]);
+                                                                            }
+                                                                        }}
+                                                                        className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium border transition-all flex items-center justify-between
+                                                                                ${isSelected ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-100 hover:bg-slate-50'}`}
+                                                                    >
+                                                                        <span className="truncate">{svc.name}</span>
+                                                                        {isSelected && <Check className="w-3 h-3 text-gold" />}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            onClick={() => setIsNextApptPickerOpen(false)}
+                                            className="mt-4 w-full py-3 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors"
+                                        >
+                                            Valider
+                                        </button>
+                                    </div>
+                                )}
+                                <h3 className="text-xs font-bold uppercase text-gold mb-6 tracking-widest flex items-center gap-2">
+                                    <Package className="w-4 h-4" /> Produits Utilisés
+                                </h3>
+
+                                <div className="space-y-4">
+                                    {allProducts?.map(product => {
+                                        const current = receiptProducts.find(p => p.productId === product._id);
+                                        const quantity = current?.quantity || 0;
+                                        const isActive = quantity > 0;
+
                                         return (
-                                            <div key={item.productId} className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
-                                                <span className="font-medium text-slate-700 text-sm">{product?.name}</span>
-                                                <div className="flex items-center gap-3">
-                                                    <span className="font-bold text-slate-900">x{item.quantity}</span>
-                                                    <button onClick={() => handleRemoveProduct(item.productId)} className="text-slate-400 hover:text-red-500">
-                                                        <X className="w-4 h-4" />
-                                                    </button>
+                                            <div
+                                                key={product._id}
+                                                className={`p-4 rounded-xl border transition-all duration-200 flex flex-col gap-3
+                                                    ${isActive
+                                                        ? 'bg-white border-gold shadow-md'
+                                                        : 'bg-slate-50/50 border-slate-100 hover:border-slate-300'}`}
+                                            >
+                                                <div className="flex justify-between items-center">
+                                                    <span className={`font-bold text-sm ${isActive ? 'text-slate-900' : 'text-slate-500'}`}>
+                                                        {product.name}
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider">
+                                                        Stock: {product.stock_quantity}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2 bg-slate-100 rounded-lg p-1 border border-slate-200">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const newQty = Math.max(0, quantity - 1);
+                                                                let updated;
+                                                                if (newQty === 0) {
+                                                                    updated = receiptProducts.filter(p => p.productId !== product._id);
+                                                                } else {
+                                                                    if (current) {
+                                                                        updated = receiptProducts.map(p => p.productId === product._id ? { ...p, quantity: newQty } : p);
+                                                                    } else {
+                                                                        updated = [...receiptProducts, { productId: product._id, quantity: newQty }];
+                                                                    }
+                                                                }
+                                                                setReceiptProducts(updated);
+
+                                                                // Recalculate Total
+                                                                const servicesTotal = receiptCurrentServices.reduce((acc, s) => acc + parsePrice(s.price), 0);
+                                                                const productsTotal = updated.reduce((acc, p) => {
+                                                                    const prod = allProducts?.find(ap => ap._id === p.productId);
+                                                                    const price = parsePrice(prod?.selling_price);
+                                                                    return acc + (price * p.quantity);
+                                                                }, 0);
+                                                                setReceiptFinalPrice(servicesTotal + productsTotal);
+                                                            }}
+                                                            className="w-8 h-8 flex items-center justify-center rounded-md bg-white hover:bg-white text-slate-400 hover:text-red-500 transition-colors shadow-sm"
+                                                        >
+                                                            -
+                                                        </button>
+                                                        <span className={`w-8 text-center font-bold ${isActive ? 'text-slate-900' : 'text-slate-300'}`}>
+                                                            {quantity}
+                                                        </span>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const newQty = quantity + 1;
+                                                                let updated;
+                                                                if (current) {
+                                                                    updated = receiptProducts.map(p => p.productId === product._id ? { ...p, quantity: newQty } : p);
+                                                                } else {
+                                                                    updated = [...receiptProducts, { productId: product._id, quantity: newQty }];
+                                                                }
+                                                                setReceiptProducts(updated);
+
+                                                                // Recalculate Total
+                                                                const servicesTotal = receiptCurrentServices.reduce((acc, s) => acc + parsePrice(s.price), 0);
+                                                                const productsTotal = updated.reduce((acc, p) => {
+                                                                    const prod = allProducts?.find(ap => ap._id === p.productId);
+                                                                    const price = parsePrice(prod?.selling_price);
+                                                                    return acc + (price * p.quantity);
+                                                                }, 0);
+                                                                setReceiptFinalPrice(servicesTotal + productsTotal);
+                                                            }}
+                                                            className="w-8 h-8 flex items-center justify-center rounded-md bg-white hover:bg-slate-900 hover:text-white text-slate-400 transition-colors shadow-sm"
+                                                        >
+                                                            +
+                                                        </button>
+                                                    </div>
+
+                                                    {(product.selling_price !== undefined) && (
+                                                        <span className="text-xs text-slate-400">
+                                                            {quantity > 0 ? `+ ${(product.selling_price * quantity).toLocaleString()} DA` : `${product.selling_price} DA unit`}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         );
                                     })}
                                 </div>
-                            </div>
+                                <h3 className="text-xs font-bold uppercase text-gold mb-4 tracking-widest flex items-center gap-2">
+                                    <CalendarIcon className="w-4 h-4" /> Prochain Rendez-vous
+                                </h3>
 
-                            {/* Payment Section */}
-                            <div>
-                                <h3 className="text-xs font-bold uppercase text-slate-400 mb-3 tracking-wider">Paiement</h3>
-                                <div className="bg-slate-900 p-6 rounded-xl text-white shadow-xl shadow-slate-900/10">
-                                    <div className="flex justify-between items-end mb-2">
-                                        <span className="text-white/60 font-medium">Total à Payer</span>
-                                        <div className="flex items-center gap-2">
-                                            <DollarSign className="w-5 h-5 text-gold" />
-                                            <input
-                                                type="number"
-                                                value={receiptFinalPrice}
-                                                onChange={(e) => setReceiptFinalPrice(Number(e.target.value))}
-                                                className="bg-transparent text-right text-3xl font-bold text-white outline-none w-[150px] border-b border-white/20 focus:border-gold"
-                                            />
-                                            <span className="text-xl font-bold text-gold">DA</span>
+                                <div
+                                    onClick={() => setIsNextApptPickerOpen(!isNextApptPickerOpen)}
+                                    className={`border rounded-xl p-4 cursor-pointer transition-all group mb-4 relative overflow-hidden
+                                        ${isNextApptPickerOpen ? 'bg-slate-50 border-gold shadow-md' : 'bg-white border-slate-200 hover:border-gold/50 hover:shadow-md'}`}
+                                >
+                                    <div className="flex items-center gap-3 mb-2 relative z-10">
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors
+                                            ${isNextApptPickerOpen ? 'bg-gold/10 text-gold' : 'bg-slate-50 text-slate-400 group-hover:text-gold group-hover:bg-gold/10'}`}>
+                                            <CalendarIcon className="w-5 h-5" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="font-bold text-slate-900 text-sm">Programmer Prochain RDV</p>
+                                            <p className="text-xs text-slate-400">
+                                                {receiptNextDate ? 'Date sélectionnée' : 'Définir une date et heure'}
+                                            </p>
+                                        </div>
+                                        <div className={`transform transition-transform ${isNextApptPickerOpen ? 'rotate-180' : ''}`}>
+                                            <ChevronRight className="w-5 h-5 text-slate-400" />
                                         </div>
                                     </div>
-                                    <p className="text-right text-xs text-white/40">*Montant modifiable manuellement</p>
+
+                                    {receiptNextDate && !isNextApptPickerOpen && (
+                                        <div className="mt-2 text-center bg-slate-100 rounded-lg py-2 border border-slate-200">
+                                            <span className="block text-slate-900 font-bold text-sm">
+                                                {receiptNextDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                                            </span>
+                                            <span className="text-gold font-bold text-sm">{receiptNextTime || 'Heure non définie'}</span>
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
-                        </div>
 
-                        {/* Right: Next Appointment & Action */}
-                        <div className="w-full md:w-[320px] bg-slate-50 -my-8 -mr-8 p-8 border-l border-slate-200 flex flex-col relative">
+                                {/* INLINE PICKER CONTENT */}
+                                {isNextApptPickerOpen && (
+                                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6 animate-in slide-in-from-top-2 duration-200">
 
-                            {/* POPUP PICKER OVERLAY - Absolute to this column or fixed if needed, let's do fixed for z-index safety */}
-                            {isNextApptPickerOpen && (
-                                <div className="absolute inset-0 z-20 bg-white/95 backdrop-blur-sm flex flex-col p-4 animate-in fade-in zoom-in-95 duration-200">
-                                    <h3 className="font-bold text-slate-900 mb-4 flex items-center justify-between">
-                                        <span>Choisir Date & Heure</span>
-                                        <button onClick={() => setIsNextApptPickerOpen(false)} className="p-1 hover:bg-slate-100 rounded-full">
-                                            <X className="w-5 h-5 text-slate-400" />
-                                        </button>
-                                    </h3>
-
-                                    <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4">
-                                        <div className="scale-90 origin-top-left -mb-6">
+                                        <div className="mb-4">
                                             <AdminCalendar
                                                 value={receiptNextDate || new Date()}
                                                 onChange={(d) => setReceiptNextDate(d)}
                                             />
                                         </div>
 
-                                        <div>
+                                        <div className="mb-4">
                                             <p className="text-xs font-bold text-slate-400 uppercase mb-2">Heure</p>
-                                            <AdminTimeSelector
+                                            <input
+                                                type="time"
                                                 value={receiptNextTime}
-                                                onChange={setReceiptNextTime}
+                                                onChange={(e) => setReceiptNextTime(e.target.value)}
+                                                className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-900 outline-none focus:border-gold focus:ring-1 focus:ring-gold/20"
                                             />
+                                        </div>
+
+                                        {/* Next Services Selection - Inline */}
+                                        <div className="mb-4">
+                                            <p className="text-xs font-bold text-slate-400 uppercase mb-2">Services à prévoir</p>
+                                            <div className="space-y-1 max-h-[150px] overflow-y-auto border border-slate-200 rounded-xl p-2 bg-white custom-scrollbar">
+                                                {groupedServices.map((group: any) => (
+                                                    <div key={group.id}>
+                                                        <p className="text-[10px] uppercase font-bold text-slate-400 mt-2 mb-1 pl-1">{group.title}</p>
+                                                        {group.treatments.map((svc: any) => {
+                                                            const isSelected = receiptNextServices.some(s => s._id === svc._id);
+                                                            return (
+                                                                <button
+                                                                    key={svc._id}
+                                                                    onClick={() => {
+                                                                        if (isSelected) {
+                                                                            setReceiptNextServices(prev => prev.filter(s => s._id !== svc._id));
+                                                                        } else {
+                                                                            setReceiptNextServices(prev => [...prev, svc]);
+                                                                        }
+                                                                    }}
+                                                                    className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold border transition-all flex items-center justify-between
+                                                                            ${isSelected ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-600 border-slate-100 hover:bg-slate-100'}`}
+                                                                >
+                                                                    <span className="truncate">{svc.name}</span>
+                                                                    {isSelected && <Check className="w-3 h-3 text-gold" />}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            onClick={() => setIsNextApptPickerOpen(false)}
+                                            className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10"
+                                        >
+                                            Confirmer la date
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Footer Action */}
+                        <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end">
+                            <button
+                                onClick={handleFinishAppointment}
+                                className="px-8 py-3 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 shadow-lg shadow-slate-900/20 flex items-center gap-2 transition-all"
+                            >
+                                <Check className="w-5 h-5" />
+                                Terminer & Encaisser
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )
+            }
+
+            {/* VIEW APPOINTMENT DETAILS MODAL */}
+            {
+                viewModalAppt && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-200">
+                        <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 animate-in zoom-in-95 duration-200 flex flex-col relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+                            <button
+                                onClick={() => setViewModalAppt(null)}
+                                className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-900 transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+
+                            <div className="text-center mb-6">
+                                {/* STATUS BADGE - REFINED */}
+                                <div className="flex justify-center mb-4">
+                                    {(() => {
+                                        // Status Logic
+                                        const apptDate = new Date(viewModalAppt.date);
+                                        const today = new Date();
+                                        today.setHours(0, 0, 0, 0);
+
+                                        let statusConfig = { bg: 'bg-slate-100', text: 'text-slate-600', label: viewModalAppt.status };
+
+                                        if (viewModalAppt.status === 'completed') {
+                                            statusConfig = { bg: 'bg-green-100', text: 'text-green-700', label: 'Terminé' };
+                                        } else if (viewModalAppt.status === 'confirmed') {
+                                            if (apptDate < today) {
+                                                statusConfig = { bg: 'bg-red-100', text: 'text-red-700', label: 'Non Présenté' };
+                                            } else {
+                                                statusConfig = { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Confirmé' };
+                                            }
+                                        } else if (viewModalAppt.status === 'pending') {
+                                            statusConfig = { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'En Attente' };
+                                        }
+
+                                        return (
+                                            <span className={`px-4 py-1.5 rounded-full font-bold text-xs uppercase tracking-wider ${statusConfig.bg} ${statusConfig.text}`}>
+                                                {statusConfig.label}
+                                            </span>
+                                        );
+                                    })()}
+                                </div>
+
+                                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
+                                    <User className="w-8 h-8 text-gold" />
+                                </div>
+                                <h2 className="text-2xl font-serif text-slate-900 mb-2">{viewModalAppt.client?.first_name} {viewModalAppt.client?.last_name}</h2>
+
+                                {viewModalAppt.client?.phone && (
+                                    <div className="flex justify-center">
+                                        <ClientContactDisplay
+                                            phone={viewModalAppt.client.phone}
+                                            instagram={viewModalAppt.client.instagram}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="space-y-6">
+                                {/* Date & Time */}
+                                <div className="flex flex-col bg-slate-900 text-white rounded-xl shadow-lg shadow-slate-900/20 overflow-hidden">
+                                    <div className="flex items-center justify-between p-4">
+                                        <div className="text-center flex-1 border-r border-white/10">
+                                            <p className="text-xs text-white/50 uppercase font-bold mb-1">Date</p>
+                                            <p className="font-bold text-lg capitalize">
+                                                {new Date(viewModalAppt.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                                            </p>
+                                        </div>
+                                        <div className="text-center flex-1">
+                                            <p className="text-xs text-white/50 uppercase font-bold mb-1">Heure</p>
+                                            <p className="font-bold text-lg text-gold">{viewModalAppt.time}</p>
                                         </div>
                                     </div>
 
-                                    <button
-                                        onClick={() => setIsNextApptPickerOpen(false)}
-                                        className="mt-4 w-full py-3 bg-slate-900 text-white rounded-xl font-bold text-sm"
-                                    >
-                                        Valider
-                                    </button>
-                                </div>
-                            )}
-
-                            {/* MAIN COLUMN CONTENT */}
-                            <h3 className="font-bold text-slate-900 mb-6 flex items-center gap-2">
-                                <CalendarIcon className="w-5 h-5 text-gold" />
-                                Prochain Rendez-vous
-                            </h3>
-
-                            <div className="flex-1 flex flex-col justify-center">
-                                {/* Summary / Trigger Card */}
-                                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center">
-                                    {receiptNextDate ? (
-                                        <div className="space-y-2">
-                                            <p className="text-xs font-bold uppercase text-slate-400">Prévu le</p>
-                                            <p className="text-xl font-serif text-slate-900 leading-none">
-                                                {receiptNextDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                                    {/* Total Price for Completed Appointments */}
+                                    {viewModalAppt.status === 'completed' && viewModalAppt.consultation?.amount_paid !== undefined && (
+                                        <div className="bg-slate-800 p-3 text-center border-t border-white/10">
+                                            <p className="text-xs text-white/50 uppercase font-bold mb-1">Total Payé</p>
+                                            <p className="font-serif font-bold text-xl text-green-400">
+                                                {viewModalAppt.consultation.amount_paid.toLocaleString()} DA
                                             </p>
-                                            <p className="text-lg font-bold text-gold">
-                                                {receiptNextTime || '--:--'}
-                                            </p>
-                                            <div className="pt-3 flex gap-2 justify-center">
-                                                <button
-                                                    onClick={() => setIsNextApptPickerOpen(true)}
-                                                    className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-bold rounded-lg transition-colors"
-                                                >
-                                                    Modifier
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        setReceiptNextDate(null);
-                                                        setReceiptNextTime('');
-                                                    }}
-                                                    className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-500 text-xs font-bold rounded-lg transition-colors"
-                                                >
-                                                    Supprimer
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="py-4">
-                                            <div className="w-12 h-12 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-3">
-                                                <CalendarIcon className="w-6 h-6" />
-                                            </div>
-                                            <p className="text-sm text-slate-500 mb-4">
-                                                Programmer un rendez-vous de suivi maintenant ?
-                                            </p>
-                                            <button
-                                                onClick={() => setIsNextApptPickerOpen(true)}
-                                                className="w-full py-2 border border-slate-200 hover:border-gold/50 hover:text-gold hover:bg-gold/5 rounded-lg text-sm font-bold text-slate-600 transition-all flex items-center justify-center gap-2"
-                                            >
-                                                <Plus className="w-4 h-4" />
-                                                Ajouter une date
-                                            </button>
                                         </div>
                                     )}
                                 </div>
-                            </div>
 
-                            {/* Actions Group */}
-                            <div className="mt-auto pt-6 space-y-3 relative z-10 w-full bg-slate-50">
-                                <button
-                                    onClick={handleFinishAppointment}
-                                    className="w-full bg-green-600 text-white py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-green-500 transition-all shadow-lg shadow-green-600/20 flex items-center justify-center gap-2"
-                                >
-                                    <Check className="w-5 h-5" />
-                                    Confirmer & Terminer
-                                </button>
-                                <button
-                                    onClick={() => setIsReceiptModalOpen(false)}
-                                    className="w-full bg-white border border-slate-200 text-slate-500 py-3 rounded-xl font-bold text-sm hover:bg-slate-100 transition-colors"
-                                >
-                                    Annuler
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* VIEW APPOINTMENT DETAILS MODAL */}
-            {viewModalAppt && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 animate-in zoom-in-95 duration-200 flex flex-col relative">
-                        <button
-                            onClick={() => setViewModalAppt(null)}
-                            className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-900 transition-colors"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-
-                        <div className="text-center mb-6">
-                            {/* STATUS BADGE - REFINED */}
-                            <div className="flex justify-center mb-4">
-                                {(() => {
-                                    // Status Logic
-                                    const apptDate = new Date(viewModalAppt.date);
-                                    const today = new Date();
-                                    today.setHours(0, 0, 0, 0);
-
-                                    let statusConfig = { bg: 'bg-slate-100', text: 'text-slate-600', label: viewModalAppt.status };
-
-                                    if (viewModalAppt.status === 'completed') {
-                                        statusConfig = { bg: 'bg-green-100', text: 'text-green-700', label: 'Terminé' };
-                                    } else if (viewModalAppt.status === 'confirmed') {
-                                        if (apptDate < today) {
-                                            statusConfig = { bg: 'bg-red-100', text: 'text-red-700', label: 'Non Présenté' };
-                                        } else {
-                                            statusConfig = { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Confirmé' };
-                                        }
-                                    } else if (viewModalAppt.status === 'pending') {
-                                        statusConfig = { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'En Attente' };
-                                    }
-
-                                    return (
-                                        <span className={`px-4 py-1.5 rounded-full font-bold text-xs uppercase tracking-wider ${statusConfig.bg} ${statusConfig.text}`}>
-                                            {statusConfig.label}
-                                        </span>
-                                    );
-                                })()}
-                            </div>
-
-                            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
-                                <User className="w-8 h-8 text-gold" />
-                            </div>
-                            <h2 className="text-2xl font-serif text-slate-900 mb-2">{viewModalAppt.client?.first_name} {viewModalAppt.client?.last_name}</h2>
-
-                            {viewModalAppt.client?.phone && (
-                                <div className="flex justify-center">
-                                    <ClientContactDisplay
-                                        phone={viewModalAppt.client.phone}
-                                        instagram={viewModalAppt.client.instagram}
-                                    />
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="space-y-6">
-                            {/* Date & Time */}
-                            <div className="flex items-center justify-between bg-slate-900 text-white p-4 rounded-xl shadow-lg shadow-slate-900/20">
-                                <div className="text-center flex-1 border-r border-white/10">
-                                    <p className="text-xs text-white/50 uppercase font-bold mb-1">Date</p>
-                                    <p className="font-bold text-lg capitalize">
-                                        {new Date(viewModalAppt.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-                                    </p>
-                                </div>
-                                <div className="text-center flex-1">
-                                    <p className="text-xs text-white/50 uppercase font-bold mb-1">Heure</p>
-                                    <p className="font-bold text-lg text-gold">{viewModalAppt.time}</p>
-                                </div>
-                            </div>
-
-                            {/* Services List */}
-                            <div>
-                                <h3 className="text-xs font-bold uppercase text-slate-400 mb-3 tracking-wider">Services Réservés</h3>
-                                <div className="space-y-2">
-                                    {viewModalAppt.services.map((svc: any) => (
-                                        <div key={svc._id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                            <div>
-                                                <p className="font-bold text-slate-900 text-sm">{svc.name}</p>
-                                                <p className="text-xs text-slate-400">{svc.duration_minutes} min</p>
-                                            </div>
-                                            <span className="font-serif text-gold font-bold">{svc.price > 0 ? `${svc.price.toLocaleString()} DA` : 'Offert'}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Notes */}
-                            {(viewModalAppt.admin_notes || viewModalAppt.client_message) && (
+                                {/* Services List */}
                                 <div>
-                                    <h3 className="text-xs font-bold uppercase text-slate-400 mb-3 tracking-wider">Notes</h3>
+                                    <h3 className="text-xs font-bold uppercase text-slate-400 mb-3 tracking-wider">Services Réservés</h3>
                                     <div className="space-y-2">
-                                        {viewModalAppt.admin_notes && (
-                                            <div className="text-sm bg-yellow-50 border border-yellow-100 p-3 rounded-xl text-yellow-800">
-                                                <span className="font-bold block text-xs uppercase mb-1 opacity-70">Note Admin</span>
-                                                {viewModalAppt.admin_notes}
+                                        {viewModalAppt.services.map((svc: any) => (
+                                            <div key={svc._id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                                <div>
+                                                    <p className="font-bold text-slate-900 text-sm">{svc.name}</p>
+                                                    <p className="text-xs text-slate-400">{svc.duration_minutes} min</p>
+                                                </div>
+                                                <span className="font-serif text-gold font-bold">{svc.price > 0 ? `${svc.price.toLocaleString()} DA` : 'Offert'}</span>
                                             </div>
-                                        )}
-                                        {viewModalAppt.client_message && (
-                                            <div className="text-sm bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-600 italic">
-                                                <span className="font-bold block text-xs uppercase mb-1 opacity-70 not-italic">Message Client</span>
-                                                "{viewModalAppt.client_message}"
-                                            </div>
-                                        )}
+                                        ))}
                                     </div>
                                 </div>
+
+                                {/* Notes */}
+                                {(viewModalAppt.admin_notes || viewModalAppt.client_message) && (
+                                    <div>
+                                        <h3 className="text-xs font-bold uppercase text-slate-400 mb-3 tracking-wider">Notes</h3>
+                                        <div className="space-y-2">
+                                            {viewModalAppt.admin_notes && (
+                                                <div className="text-sm bg-yellow-50 border border-yellow-100 p-3 rounded-xl text-yellow-800">
+                                                    <span className="font-bold block text-xs uppercase mb-1 opacity-70">Note Admin</span>
+                                                    {viewModalAppt.admin_notes}
+                                                </div>
+                                            )}
+                                            {viewModalAppt.client_message && (
+                                                <div className="text-sm bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-600 italic">
+                                                    <span className="font-bold block text-xs uppercase mb-1 opacity-70 not-italic">Message Client</span>
+                                                    "{viewModalAppt.client_message}"
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Finish Action - CONDITIONAL */}
+                            {/* Show for Confirmed appointments, regardless of date (allows late processing) */}
+                            {viewModalAppt.status === 'confirmed' && (
+                                <div className="mt-8 pt-6 border-t border-slate-100 flex gap-4">
+                                    <button
+                                        onClick={() => openReceiptModal(viewModalAppt)}
+                                        className="flex-1 bg-slate-900 text-white py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/20 flex items-center justify-center gap-2"
+                                    >
+                                        <div className="w-6 h-6 rounded-full bg-gold/20 flex items-center justify-center">
+                                            <div className="w-2 h-2 rounded-full bg-gold animate-pulse"></div>
+                                        </div>
+                                        Démarrer Consultation
+                                    </button>
+                                </div>
                             )}
                         </div>
-
-                        {/* Finish Action - CONDITIONAL */}
-                        {viewModalAppt.status !== 'completed' && !(new Date(viewModalAppt.date) < new Date() && viewModalAppt.status === 'confirmed') && (
-                            <div className="mt-8 pt-6 border-t border-slate-100 flex gap-4">
-                                <button
-                                    onClick={() => openReceiptModal(viewModalAppt)}
-                                    className="flex-1 bg-slate-900 text-white py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/20 flex items-center justify-center gap-2"
-                                >
-                                    <Check className="w-5 h-5 text-gold" />
-                                    Terminer & Payer
-                                </button>
-                            </div>
-                        )}
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };
 
