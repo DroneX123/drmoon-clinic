@@ -3,6 +3,8 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Check, X, Calendar, Phone, MessageCircle, Instagram, Clock } from 'lucide-react';
 import { groupServicesByCategory } from '../../utils/convexHelpers';
+import AdminCalendar from '../../components/AdminCalendar';
+import AdminTimeSelector from '../../components/AdminTimeSelector';
 
 const AdminRequestsPage: React.FC = () => {
     const pendingAppointments = useQuery(api.appointments.getPending);
@@ -97,33 +99,29 @@ const AdminRequestsPage: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Date & Time Inputs */}
-                            <div className="grid grid-cols-2 gap-4">
-                                {/* Date */}
-                                <div className="border border-slate-200 rounded-xl p-4 bg-white hover:border-gold/50 transition-colors">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-xs font-bold uppercase text-slate-400">Date</span>
+                            {/* Date & Time Selection */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Date Calendar */}
+                                <div>
+                                    <h5 className="font-bold text-slate-900 mb-3 flex items-center gap-2 text-sm">
                                         <Calendar className="w-4 h-4 text-gold" />
-                                    </div>
-                                    <input
-                                        type="date"
-                                        value={newDate}
-                                        onChange={(e) => setNewDate(e.target.value)}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-gold/20 cursor-pointer"
+                                        Date du Rendez-vous
+                                    </h5>
+                                    <AdminCalendar
+                                        value={newDate ? new Date(newDate) : new Date()}
+                                        onChange={(d) => setNewDate(d.toISOString().split('T')[0])}
                                     />
                                 </div>
 
-                                {/* Time */}
-                                <div className="border border-slate-200 rounded-xl p-4 bg-white hover:border-gold/50 transition-colors">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-xs font-bold uppercase text-slate-400">Heure</span>
+                                {/* Time Selector */}
+                                <div>
+                                    <h5 className="font-bold text-slate-900 mb-3 flex items-center gap-2 text-sm">
                                         <Clock className="w-4 h-4 text-gold" />
-                                    </div>
-                                    <input
-                                        type="time"
+                                        Heure du Rendez-vous
+                                    </h5>
+                                    <AdminTimeSelector
                                         value={newTime}
-                                        onChange={(e) => setNewTime(e.target.value)}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-gold/20 cursor-pointer"
+                                        onChange={setNewTime}
                                     />
                                 </div>
                             </div>

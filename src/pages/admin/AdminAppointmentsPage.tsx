@@ -3,6 +3,8 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Phone, Plus, X, Check } from 'lucide-react';
 import { formatDateForConvex, groupServicesByCategory } from '../../utils/convexHelpers';
+import AdminCalendar from '../../components/AdminCalendar';
+import AdminTimeSelector from '../../components/AdminTimeSelector';
 
 const AdminAppointmentsPage: React.FC = () => {
     // Date Selection State
@@ -279,32 +281,33 @@ const AdminAppointmentsPage: React.FC = () => {
                                 <h3 className="text-xs font-bold uppercase text-slate-400 mb-3 tracking-wider flex items-center gap-2">
                                     <CalendarIcon className="w-3 h-3" /> Détails Rendez-vous
                                 </h3>
-                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                     {/* Date */}
-                                    <div className="border border-slate-200 rounded-xl p-4 bg-white hover:border-gold/50 transition-colors">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-xs font-bold uppercase text-slate-400">Date</span>
-                                            <CalendarIcon className="w-4 h-4 text-gold" />
+                                    <div>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h5 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                                                <CalendarIcon className="w-4 h-4 text-gold" />
+                                                Date
+                                                <span className="text-slate-400 font-normal text-xs capitalize ml-2">
+                                                    {selectedDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                </span>
+                                            </h5>
                                         </div>
-                                        <input
-                                            type="date"
-                                            value={formatDateForConvex(selectedDate)}
-                                            onChange={(e) => setSelectedDate(new Date(e.target.value))}
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-gold/20 cursor-pointer"
+                                        <AdminCalendar
+                                            value={selectedDate}
+                                            onChange={setSelectedDate}
                                         />
                                     </div>
 
                                     {/* Time */}
-                                    <div className="border border-slate-200 rounded-xl p-4 bg-white hover:border-gold/50 transition-colors">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-xs font-bold uppercase text-slate-400">Heure</span>
+                                    <div>
+                                        <h5 className="font-bold text-slate-900 text-sm flex items-center gap-2 mb-3">
                                             <Clock className="w-4 h-4 text-gold" />
-                                        </div>
-                                        <input
-                                            type="time"
+                                            Heure
+                                        </h5>
+                                        <AdminTimeSelector
                                             value={apptTime}
-                                            onChange={(e) => setApptTime(e.target.value)}
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-gold/20 cursor-pointer"
+                                            onChange={setApptTime}
                                         />
                                     </div>
                                 </div>
