@@ -1,13 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Check, X, Calendar, Clock, Phone } from 'lucide-react';
+import { Check, X, Calendar, Phone, MessageCircle } from 'lucide-react';
 
 const AdminAppointmentsPage: React.FC = () => {
     const pendingAppointments = useQuery(api.appointments.getPending);
     const updateStatus = useMutation(api.appointments.updateStatus);
+    const [phoneMenuId, setPhoneMenuId] = useState<string | null>(null);
 
     const handleAction = async (id: any, newStatus: string) => {
+        if (newStatus === 'cancelled' && !window.confirm("Êtes-vous sûr de vouloir refuser ce rendez-vous ?")) {
+            return;
+        }
         await updateStatus({ id, status: newStatus });
     };
 
@@ -47,14 +51,38 @@ const AdminAppointmentsPage: React.FC = () => {
                                         <Calendar className="w-4 h-4 text-gold" />
                                         <span>{appt.date}</span>
                                     </div>
-                                    <div className="flex items-center gap-1">
-                                        <Clock className="w-4 h-4 text-gold" />
-                                        <span>{appt.time}</span>
-                                    </div>
+                                    {/* Time removed as requested */}
+
                                     {appt.client?.phone && (
-                                        <div className="flex items-center gap-1">
-                                            <Phone className="w-4 h-4 text-gold" />
-                                            <span>{appt.client.phone}</span>
+                                        <div className="relative">
+                                            <button
+                                                onClick={() => setPhoneMenuId(phoneMenuId === appt._id ? null : appt._id)}
+                                                className="flex items-center gap-1 hover:text-slate-800 transition-colors"
+                                            >
+                                                <Phone className="w-4 h-4 text-gold" />
+                                                <span className="underline decoration-dotted">{appt.client.phone}</span>
+                                            </button>
+
+                                            {phoneMenuId === appt._id && (
+                                                <div className="absolute top-full left-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-100 p-2 z-10 min-w-[150px] flex flex-col gap-1">
+                                                    <a
+                                                        href={`tel:${appt.client.phone}`}
+                                                        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-slate-700 text-xs font-bold"
+                                                    >
+                                                        <Phone className="w-3 h-3" />
+                                                        Appeler
+                                                    </a>
+                                                    <a
+                                                        href={`https://wa.me/${appt.client.phone.replace(/\+/g, '').replace(/\s/g, '')}`}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-green-50 text-green-600 text-xs font-bold"
+                                                    >
+                                                        <MessageCircle className="w-3 h-3" />
+                                                        WhatsApp
+                                                    </a>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -83,7 +111,7 @@ const AdminAppointmentsPage: React.FC = () => {
                                 </button>
                                 <button
                                     onClick={() => handleAction(appt._id, 'confirmed')}
-                                    className="flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 text-white hover:bg-gold hover:text-slate-900 transition-all font-bold uppercase tracking-wider text-xs shadow-lg shadow-slate-900/20"
+                                    className="flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-all font-bold uppercase tracking-wider text-xs shadow-lg shadow-emerald-500/20"
                                 >
                                     <Check className="w-4 h-4" />
                                     <span>Accepter</span>
