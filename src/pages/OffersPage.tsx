@@ -166,7 +166,7 @@ const OffersPage: React.FC = () => {
                         </div>
 
                         {/* Modal Content - Expanded width */}
-                        <div className="flex flex-col p-6 md:p-8 md:w-2/3 overflow-y-auto no-scrollbar md:custom-scrollbar max-h-[60vh] md:max-h-none">
+                        <div className="flex flex-col p-6 md:p-8 md:w-2/3 md:overflow-y-auto md:custom-scrollbar">
                             <h2 className="mb-1 font-serif text-3xl text-gold">{selectedRitual.title}</h2>
                             <p className="mb-8 text-xs font-bold uppercase tracking-widest text-white/50">{selectedRitual.subtitle}</p>
 
