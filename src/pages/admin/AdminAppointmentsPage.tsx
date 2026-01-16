@@ -7,12 +7,12 @@ const AdminAppointmentsPage: React.FC = () => {
     const pendingAppointments = useQuery(api.appointments.getPending);
     const updateStatus = useMutation(api.appointments.updateStatus);
     const [phoneMenuId, setPhoneMenuId] = useState<string | null>(null);
+    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
     const handleAction = async (id: any, newStatus: string) => {
-        if (newStatus === 'cancelled' && !window.confirm("Êtes-vous sûr de vouloir refuser ce rendez-vous ?")) {
-            return;
-        }
+        // Confirmation handling is now in UI
         await updateStatus({ id, status: newStatus });
+        if (newStatus === 'cancelled') setDeleteConfirmId(null);
     };
 
     if (pendingAppointments === undefined) {
@@ -102,13 +102,31 @@ const AdminAppointmentsPage: React.FC = () => {
 
                             {/* Actions */}
                             <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => handleAction(appt._id, 'cancelled')}
-                                    className="p-3 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
-                                    title="Refuser"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
+                                {deleteConfirmId === appt._id ? (
+                                    <div className="flex items-center gap-2 bg-red-50 px-3 py-2 rounded-xl animate-in fade-in slide-in-from-right-4">
+                                        <span className="text-xs text-red-600 font-medium whitespace-nowrap">Sûr ?</span>
+                                        <button
+                                            onClick={() => handleAction(appt._id, 'cancelled')}
+                                            className="p-1 rounded-full bg-red-500 text-white hover:bg-red-600"
+                                        >
+                                            <Check className="w-3 h-3" />
+                                        </button>
+                                        <button
+                                            onClick={() => setDeleteConfirmId(null)}
+                                            className="p-1 rounded-full bg-slate-200 text-slate-500 hover:bg-slate-300"
+                                        >
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => setDeleteConfirmId(appt._id)}
+                                        className="p-3 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
+                                        title="Refuser"
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                )}
                                 <button
                                     onClick={() => handleAction(appt._id, 'confirmed')}
                                     className="flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-all font-bold uppercase tracking-wider text-xs shadow-lg shadow-emerald-500/20"
