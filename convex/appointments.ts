@@ -47,6 +47,23 @@ export const updateStatus = mutation({
     },
 });
 
+export const getConfirmedByDate = query({
+    args: { date: v.string() },
+    handler: async (ctx, args) => {
+        const appointments = await ctx.db
+            .query("appointments")
+            .filter((q) =>
+                q.and(
+                    q.eq(q.field("status"), "confirmed"),
+                    q.eq(q.field("date"), args.date)
+                )
+            )
+            .collect();
+
+        return Promise.all(appointments.map((appt) => enrichAppointment(ctx, appt)));
+    },
+});
+
 export const createAppointment = mutation({
     args: {
         firstName: v.string(),
