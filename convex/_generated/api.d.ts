@@ -13,6 +13,8 @@ import type * as appointments from "../appointments.js";
 import type * as auth from "../auth.js";
 import type * as clients from "../clients.js";
 import type * as consultations from "../consultations.js";
+import type * as dashboard from "../dashboard.js";
+import type * as expenses from "../expenses.js";
 import type * as products from "../products.js";
 import type * as reseed from "../reseed.js";
 import type * as seed from "../seed.js";
@@ -32,6 +34,8 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   clients: typeof clients;
   consultations: typeof consultations;
+  dashboard: typeof dashboard;
+  expenses: typeof expenses;
   products: typeof products;
   reseed: typeof reseed;
   seed: typeof seed;

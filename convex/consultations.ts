@@ -110,3 +110,36 @@ export const getAll = query({
         }));
     },
 });
+
+export const getHistoryByClientId = query({
+    args: { clientId: v.id("clients") },
+    handler: async (ctx, args) => {
+        // 1. Get all completed appointments for this client
+        const appointments = await ctx.db
+            .query("appointments")
+            .filter((q) => q.eq(q.field("client_id"), args.clientId))
+            .order("desc")
+            .collect();
+
+        // 2. Enrich with Services and Consultation Details
+        return Promise.all(appointments.map(async (ppt) => {
+            // Get Services
+            const services = await Promise.all(
+                (ppt.service_ids || []).map((id: any) => ctx.db.get(id))
+            );
+
+            // Get Consultation (Receipt) - inefficient full scan if no index, but acceptable for MVP
+            // TODO: Add index on appointment_id to consultations table
+            const consultation = await ctx.db
+                .query("consultations")
+                .filter(q => q.eq(q.field("appointment_id"), ppt._id))
+                .first();
+
+            return {
+                ...ppt,
+                services: services.filter(Boolean),
+                consultation,
+            };
+        }));
+    },
+});

@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Plus, Edit2, Trash2, X, Search, User, Phone, Mail, Instagram, Calendar, FileText, MessageCircle } from 'lucide-react';
+// Removed risky icons: Send, MessageSquare, MessageCircle. Using Phone for WhatsApp temporarily.
+import { Plus, Edit2, Trash2, X, Search, User, Phone, Mail, Instagram, Calendar, FileText, Clock } from 'lucide-react';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 const AdminClientsPage: React.FC = () => {
     // Data
@@ -15,7 +18,14 @@ const AdminClientsPage: React.FC = () => {
     // State
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [editingClient, setEditingClient] = useState<any>(null);
+    const [viewingClient, setViewingClient] = useState<any>(null);
+
+    // History Query
+    const clientHistory = useQuery(api.consultations.getHistoryByClientId,
+        viewingClient ? { clientId: viewingClient._id } : "skip" as any
+    );
 
     // Form State
     const [formData, setFormData] = useState({
@@ -27,12 +37,17 @@ const AdminClientsPage: React.FC = () => {
         notes: ''
     });
 
-    // Filtered Clients
-    const filteredClients = clients?.filter((c: any) =>
-        c.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.phone.includes(searchTerm)
-    );
+    // Filtered Clients (Search Logic)
+    const cleanSearch = searchTerm.replace(/\s/g, '');
+    const filteredClients = clients?.filter((c: any) => {
+        const fullName = `${c.first_name} ${c.last_name}`.toLowerCase();
+        const searchLower = searchTerm.toLowerCase();
+        const cleanPhone = c.phone.replace(/\s/g, '');
+
+        return fullName.includes(searchLower) ||
+            c.phone.includes(searchTerm) ||
+            cleanPhone.includes(cleanSearch);
+    });
 
     // Handlers
     const handleOpenModal = (client: any = null) => {
@@ -58,6 +73,11 @@ const AdminClientsPage: React.FC = () => {
             });
         }
         setIsModalOpen(true);
+    };
+
+    const handleViewDetails = (client: any) => {
+        setViewingClient(client);
+        setIsDetailsModalOpen(true);
     };
 
     const handleSave = async () => {
@@ -93,7 +113,7 @@ const AdminClientsPage: React.FC = () => {
     };
 
     return (
-        <div className="p-8 max-w-7xl mx-auto min-h-screen">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto min-h-screen">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
@@ -123,8 +143,8 @@ const AdminClientsPage: React.FC = () => {
                 />
             </div>
 
-            {/* Clients Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
+            {/* Clients Grid - Scrollable Container */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20 overflow-y-auto">
                 {!filteredClients ? (
                     <div className="col-span-full text-center py-12 text-slate-400">Chargement...</div>
                 ) : filteredClients.length === 0 ? (
@@ -137,7 +157,7 @@ const AdminClientsPage: React.FC = () => {
                     filteredClients.map((client: any) => (
                         <div
                             key={client._id}
-                            onClick={() => handleOpenModal(client)}
+                            onClick={() => handleViewDetails(client)}
                             className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md hover:border-gold/50 transition-all cursor-pointer group flex flex-col"
                         >
                             <div className="flex justify-between items-start mb-4">
@@ -146,7 +166,7 @@ const AdminClientsPage: React.FC = () => {
                                         {client.first_name.charAt(0)}{client.last_name.charAt(0)}
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-lg text-slate-900">{client.first_name} {client.last_name}</h3>
+                                        <h3 className="font-bold text-lg text-slate-900 group-hover:text-gold transition-colors">{client.first_name} {client.last_name}</h3>
                                         <p className="text-xs text-slate-400 font-mono">ID: {client._id.slice(-6)}</p>
                                     </div>
                                 </div>
@@ -177,7 +197,8 @@ const AdminClientsPage: React.FC = () => {
                                     className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 hover:bg-emerald-500 hover:text-white transition-colors"
                                     title="WhatsApp"
                                 >
-                                    <MessageCircle className="w-5 h-5" />
+                                    {/* Using Phone icon for WA as fallback for missing icons */}
+                                    <Phone className="w-5 h-5" />
                                 </a>
 
                                 {client.instagram && (
@@ -216,7 +237,10 @@ const AdminClientsPage: React.FC = () => {
                                     >
                                         <Trash2 className="w-4 h-4" />
                                     </button>
-                                    <button className="p-2 hover:bg-slate-50 text-slate-300 hover:text-slate-900 rounded-lg transition-colors">
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleOpenModal(client); }}
+                                        className="p-2 hover:bg-slate-50 text-slate-300 hover:text-slate-900 rounded-lg transition-colors"
+                                    >
                                         <Edit2 className="w-4 h-4" />
                                     </button>
                                 </div>
@@ -226,7 +250,7 @@ const AdminClientsPage: React.FC = () => {
                 )}
             </div>
 
-            {/* Modal */}
+            {/* Modal - Create/Edit */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-200">
                     <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 animate-in zoom-in-95 duration-200">
@@ -320,6 +344,110 @@ const AdminClientsPage: React.FC = () => {
                             >
                                 Enregistrer
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal - Client Details (History) */}
+            {isDetailsModalOpen && viewingClient && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200">
+                        {/* Header */}
+                        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-full bg-slate-900 flex items-center justify-center text-gold font-serif font-bold text-lg">
+                                    {viewingClient.first_name.charAt(0)}{viewingClient.last_name.charAt(0)}
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-serif text-slate-900">{viewingClient.first_name} {viewingClient.last_name}</h2>
+                                    <div className="flex items-center gap-2 text-sm text-slate-500">
+                                        <Phone className="w-3 h-3" />
+                                        <span>{viewingClient.phone}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsDetailsModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Content - Scrollable */}
+                        <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
+                            <h3 className="text-xs font-bold uppercase text-slate-400 tracking-widest mb-4">Historique des Rendez-vous</h3>
+
+                            {!clientHistory ? (
+                                <div className="text-center py-8 text-slate-400">Chargement...</div>
+                            ) : clientHistory.length === 0 ? (
+                                <div className="text-center py-12 bg-white rounded-xl border border-slate-200 border-dashed">
+                                    <Calendar className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                                    <p className="text-slate-500 font-medium">Aucun historique disponible</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {clientHistory.map((ppt: any) => (
+                                        <div key={ppt._id} className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="p-2 rounded-lg bg-gold/10 text-gold">
+                                                        <Clock className="w-4 h-4" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-slate-900 capitalize">
+                                                            {format(new Date(ppt.date), 'EEEE d MMMM yyyy', { locale: fr })}
+                                                        </p>
+                                                        <p className="text-xs text-slate-400">{ppt.time}</p>
+                                                    </div>
+                                                </div>
+                                                <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase
+                                                    ${ppt.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
+                                                        ppt.status === 'confirmed' ? 'bg-sky-100 text-sky-700' :
+                                                            ppt.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}
+                                                `}>
+                                                    {ppt.status === 'completed' ? 'Terminé' :
+                                                        ppt.status === 'confirmed' ? 'Confirmé' :
+                                                            ppt.status === 'cancelled' ? 'Annulé' : 'En attente'}
+                                                </span>
+                                            </div>
+
+                                            <div className="pl-12 border-l-2 border-slate-100 space-y-3">
+                                                <div>
+                                                    <p className="text-xs font-bold uppercase text-slate-400 mb-1">Prestations</p>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {ppt.services.map((svc: any) => (
+                                                            <span key={svc._id} className="px-2 py-1 bg-slate-50 text-slate-700 text-xs font-medium rounded-md border border-slate-200">
+                                                                {svc.name}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {ppt.consultation && (
+                                                    <div className="grid grid-cols-2 gap-4 pt-2">
+                                                        <div>
+                                                            <p className="text-xs font-bold uppercase text-slate-400 mb-1">Montant Payé</p>
+                                                            <p className="font-mono font-bold text-slate-900">{ppt.consultation.amount_paid.toLocaleString()} DA</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xs font-bold uppercase text-slate-400 mb-1">Méthode</p>
+                                                            <p className="text-sm text-slate-700">{ppt.consultation.payment_method}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {ppt.admin_notes && (
+                                                    <div className="pt-2">
+                                                        <p className="text-xs font-bold uppercase text-slate-400 mb-1">Notes</p>
+                                                        <p className="text-sm text-slate-600 bg-amber-50 p-3 rounded-lg border border-amber-100">
+                                                            {ppt.admin_notes}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

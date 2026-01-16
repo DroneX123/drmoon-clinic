@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Plus, Edit2, Trash2, X, Phone, Mail, Instagram, Truck, User, MessageCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Phone, Mail, Instagram, Truck, User } from 'lucide-react';
 
 const AdminSuppliersPage: React.FC = () => {
     // Data
@@ -145,7 +145,8 @@ const AdminSuppliersPage: React.FC = () => {
                                     className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 hover:bg-emerald-500 hover:text-white transition-colors"
                                     title="WhatsApp"
                                 >
-                                    <MessageCircle className="w-5 h-5" />
+                                    {/* Using Phone icon for WA as fallback */}
+                                    <Phone className="w-5 h-5" />
                                 </a>
 
                                 {supplier.instagram && (

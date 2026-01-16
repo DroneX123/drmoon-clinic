@@ -14,6 +14,7 @@ import AdminConsultationsPage from './pages/admin/AdminConsultationsPage';
 import AdminServicesPage from './pages/admin/AdminServicesPage';
 import AdminProductsPage from './pages/admin/AdminProductsPage';
 import AdminSuppliersPage from './pages/admin/AdminSuppliersPage';
+import AdminExpensesPage from './pages/admin/AdminExpensesPage';
 import PageTransition from './components/PageTransition';
 import { SpeedInsights } from "@vercel/speed-insights/react"
 
@@ -38,6 +39,7 @@ const AnimatedRoutes: React.FC = () => {
             <Route path="/admin/appointments" element={<AdminAppointmentsPage />} />
             <Route path="/admin/clients" element={<AdminClientsPage />} />
             <Route path="/admin/consultations" element={<AdminConsultationsPage />} />
+            <Route path="/admin/expenses" element={<AdminExpensesPage />} />
           </Route>
         </Routes>
       </AnimatePresence>

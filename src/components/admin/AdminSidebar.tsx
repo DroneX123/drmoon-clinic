@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Calendar, Users, FileText, Bell, LogOut, Sparkles, Clock, ClipboardList, Package, Truck, X } from 'lucide-react';
+import { LayoutDashboard, Calendar, Users, LogOut, Sparkles, Clock, ClipboardList, Package, Truck, X, DollarSign } from 'lucide-react';
 
 interface AdminSidebarProps {
     isOpen: boolean;
@@ -21,6 +21,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) => {
         { name: 'Agenda', path: '/admin/appointments', icon: Calendar },
         { name: 'Clients', path: '/admin/clients', icon: Users },
         { name: 'Consultations', path: '/admin/consultations', icon: ClipboardList },
+        { name: 'Dépenses', path: '/admin/expenses', icon: DollarSign },
     ];
 
     const handleLogout = () => {
