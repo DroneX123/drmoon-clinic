@@ -29,6 +29,13 @@ const AdminLoginPage: React.FC = () => {
     const navigate = useNavigate();
     const convex = useConvex();
 
+    // Redirect if already logged in
+    React.useEffect(() => {
+        if (localStorage.getItem('isAdminAuthenticated')) {
+            navigate('/admin/dashboard', { replace: true });
+        }
+    }, [navigate]);
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
@@ -41,7 +48,7 @@ const AdminLoginPage: React.FC = () => {
             if (isValid) {
                 // SUCCESS
                 localStorage.setItem('isAdminAuthenticated', 'true');
-                navigate('/admin/dashboard');
+                navigate('/admin/dashboard', { replace: true });
             } else {
                 setError('Identifiants incorrects');
             }
