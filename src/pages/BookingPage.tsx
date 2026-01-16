@@ -252,7 +252,7 @@ const BookingPage: React.FC = () => {
                                 <div className={`transition-all duration-500 overflow-hidden ${selectedDate ? 'max-h-32 opacity-100' : 'max-h-0 opacity-0'}`}>
                                     <div className="flex flex-col items-center justify-center text-center p-6 border-t border-white/5 mt-4">
                                         <span className="font-serif text-lg text-white">
-                                            Vous êtes disponible à partir de <span className="text-gold font-bold">09:00</span>
+                                            Vous êtes disponible à partir de :
                                         </span>
                                         <p className="text-[10px] text-white/30 uppercase tracking-widest mt-2">
                                             Nous confirmerons l'heure exacte par téléphone
