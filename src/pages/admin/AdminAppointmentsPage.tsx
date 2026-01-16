@@ -34,6 +34,7 @@ const AdminAppointmentsPage: React.FC = () => {
     const [receiptNextDate, setReceiptNextDate] = useState<Date | null>(null);
     const [receiptNextTime, setReceiptNextTime] = useState('');
     const [receiptNotes, setReceiptNotes] = useState('');
+    const [isNextApptPickerOpen, setIsNextApptPickerOpen] = useState(false);
 
     // Pre-fill receipt when opening
     const openReceiptModal = (appt: any) => {
@@ -44,6 +45,7 @@ const AdminAppointmentsPage: React.FC = () => {
         setReceiptNextDate(null);
         setReceiptNextTime('');
         setReceiptNotes('');
+        setIsNextApptPickerOpen(false);
         setIsReceiptModalOpen(true);
         // We keep viewModalAppt set so we know which appt we are finishing
     };
@@ -248,60 +250,72 @@ const AdminAppointmentsPage: React.FC = () => {
                         today.setHours(0, 0, 0, 0);
                         const isMissed = appt.status === 'confirmed' && apptDate < today;
 
+                        let statusConfig = { bg: 'bg-slate-100', text: 'text-slate-600', label: appt.status };
+                        if (appt.status === 'completed') {
+                            statusConfig = { bg: 'bg-green-100', text: 'text-green-700', label: 'Terminé' };
+                        } else if (appt.status === 'confirmed') {
+                            if (isMissed) {
+                                statusConfig = { bg: 'bg-red-100', text: 'text-red-700', label: 'Non Présenté' };
+                            } else {
+                                statusConfig = { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Confirmé' };
+                            }
+                        }
+
                         return (
                             <div
                                 key={appt._id}
                                 onClick={() => setViewModalAppt(appt)}
-                                className={`p-5 rounded-2xl border shadow-sm hover:shadow-md transition-all flex items-center justify-between group cursor-pointer 
+                                className={`p-6 rounded-2xl border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer transition-all duration-200 group
                                 ${isMissed
-                                        ? 'bg-red-50 border-red-200 hover:border-red-300'
-                                        : 'bg-white border-slate-200 hover:border-gold/30'
+                                        ? 'bg-red-50/50 border-red-100 hover:border-red-200 hover:shadow-md'
+                                        : 'bg-white border-slate-200 hover:border-gold/30 hover:shadow-md'
                                     }`}
                             >
-                                <div className="flex items-center gap-4">
-                                    {/* Time Column */}
-                                    <div className={`flex flex-col items-center justify-center px-4 border-r min-w-[80px]
-                                     ${isMissed ? 'border-red-200 text-red-700' : 'border-slate-100 text-slate-900'}`}>
-                                        <span className="text-lg font-bold">{appt.time}</span>
-                                        {isMissed && <span className="text-[10px] font-bold uppercase bg-red-200 text-red-800 px-1 rounded">Raté</span>}
-                                        {!isMissed && <span className="text-xs text-slate-400 uppercase font-medium">Heure</span>}
+                                {/* Client Info */}
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <h3 className={`font-bold text-lg ${isMissed ? 'text-red-900' : 'text-slate-900'}`}>
+                                            {appt.client ? `${appt.client.first_name} ${appt.client.last_name}` : 'Client Inconnu'}
+                                        </h3>
+                                        <span className={`${statusConfig.bg} ${statusConfig.text} text-[10px] font-bold uppercase px-2 py-0.5 rounded-full tracking-wider`}>
+                                            {statusConfig.label}
+                                        </span>
                                     </div>
 
-                                    {/* Patient Info */}
-                                    <div className="flex flex-col">
-                                        <h3 className={`text-lg font-bold flex items-center gap-2 ${isMissed ? 'text-red-900' : 'text-slate-900'}`}>
-                                            {appt.client ? `${appt.client.first_name} ${appt.client.last_name}` : 'Client Inconnu'}
-                                            {appt.client?.phone && (
+                                    <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500 mb-3">
+                                        <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
+                                            <CalendarIcon className="w-3.5 h-3.5 text-gold" />
+                                            <span className="font-medium text-slate-700">{appt.date}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
+                                            <Clock className="w-3.5 h-3.5 text-gold" />
+                                            <span className="font-bold text-slate-900">{appt.time}</span>
+                                        </div>
+
+                                        {appt.client?.phone && (
+                                            <div onClick={(e) => e.stopPropagation()}>
                                                 <ClientContactDisplay
                                                     phone={appt.client.phone}
                                                     instagram={appt.client.instagram}
-                                                    className="scale-90 origin-left"
                                                 />
-                                            )}
-                                        </h3>
-                                        <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
-                                            <span className={`px-2 py-0.5 rounded-md font-medium text-xs ${isMissed ? 'bg-red-100 text-red-600' : 'bg-gold/10 text-gold'}`}>
-                                                {appt.services.length} Service(s)
-                                            </span>
-                                            <span>•</span>
-                                            <span className="truncate max-w-[200px]">
-                                                {appt.services.map((s: any) => s.name).join(', ')}
-                                            </span>
-                                        </div>
-                                        {appt.admin_notes && (
-                                            <p className="text-xs text-slate-500 mt-1 bg-slate-50 p-1 rounded border border-slate-100 inline-block">
-                                                Note Admin: "{appt.admin_notes}"
-                                            </p>
+                                            </div>
                                         )}
+                                    </div>
+
+                                    {/* Services */}
+                                    <div className="flex flex-wrap gap-2">
+                                        {appt.services.map((svc: any) => (
+                                            <span key={svc._id} className="bg-slate-50 text-slate-600 border border-slate-100 px-2 py-1 rounded-md text-xs font-medium">
+                                                {svc.name}
+                                            </span>
+                                        ))}
+                                        {appt.services.length === 0 && <span className="text-xs text-slate-400 italic">Aucun service spécifié</span>}
                                     </div>
                                 </div>
 
-                                {/* Status */}
-                                <div className="flex items-center gap-4">
-                                    <span className={`text-xs font-bold transition-colors uppercase tracking-wider ${isMissed ? 'text-red-400 group-hover:text-red-600' : 'text-slate-400 group-hover:text-gold'}`}>
-                                        {isMissed ? 'Non Présenté' : 'Voir Détails'}
-                                    </span>
-                                    <ChevronRight className={`w-5 h-5 transition-colors ${isMissed ? 'text-red-300 group-hover:text-red-500' : 'text-slate-300 group-hover:text-gold'}`} />
+                                {/* Action Arrow */}
+                                <div className="pl-4 border-l border-slate-100 hidden md:flex items-center justify-center">
+                                    <ChevronRight className={`w-6 h-6 transition-transform group-hover:translate-x-1 ${isMissed ? 'text-red-300' : 'text-slate-300 group-hover:text-gold'}`} />
                                 </div>
                             </div>
                         )
@@ -522,42 +536,102 @@ const AdminAppointmentsPage: React.FC = () => {
                         </div>
 
                         {/* Right: Next Appointment & Action */}
-                        <div className="w-full md:w-[320px] bg-slate-50 -my-8 -mr-8 p-8 border-l border-slate-200 flex flex-col">
+                        <div className="w-full md:w-[320px] bg-slate-50 -my-8 -mr-8 p-8 border-l border-slate-200 flex flex-col relative">
+
+                            {/* POPUP PICKER OVERLAY - Absolute to this column or fixed if needed, let's do fixed for z-index safety */}
+                            {isNextApptPickerOpen && (
+                                <div className="absolute inset-0 z-20 bg-white/95 backdrop-blur-sm flex flex-col p-4 animate-in fade-in zoom-in-95 duration-200">
+                                    <h3 className="font-bold text-slate-900 mb-4 flex items-center justify-between">
+                                        <span>Choisir Date & Heure</span>
+                                        <button onClick={() => setIsNextApptPickerOpen(false)} className="p-1 hover:bg-slate-100 rounded-full">
+                                            <X className="w-5 h-5 text-slate-400" />
+                                        </button>
+                                    </h3>
+
+                                    <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4">
+                                        <div className="scale-90 origin-top-left -mb-6">
+                                            <AdminCalendar
+                                                value={receiptNextDate || new Date()}
+                                                onChange={(d) => setReceiptNextDate(d)}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <p className="text-xs font-bold text-slate-400 uppercase mb-2">Heure</p>
+                                            <AdminTimeSelector
+                                                value={receiptNextTime}
+                                                onChange={setReceiptNextTime}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={() => setIsNextApptPickerOpen(false)}
+                                        className="mt-4 w-full py-3 bg-slate-900 text-white rounded-xl font-bold text-sm"
+                                    >
+                                        Valider
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* MAIN COLUMN CONTENT */}
                             <h3 className="font-bold text-slate-900 mb-6 flex items-center gap-2">
                                 <CalendarIcon className="w-5 h-5 text-gold" />
                                 Prochain Rendez-vous
                             </h3>
 
-                            <div className="flex-1 space-y-6">
-                                {/* Next Date */}
-                                <div>
-                                    <p className="text-xs font-bold text-slate-400 uppercase mb-2">Date (Optionnel)</p>
-                                    <AdminCalendar
-                                        value={receiptNextDate || new Date()}
-                                        onChange={setReceiptNextDate}
-                                    />
-                                    {receiptNextDate && (
-                                        <p className="text-center text-xs font-bold text-gold mt-2">
-                                            {receiptNextDate.toLocaleDateString('fr-FR')} sélectionné
-                                        </p>
+                            <div className="flex-1 flex flex-col justify-center">
+                                {/* Summary / Trigger Card */}
+                                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center">
+                                    {receiptNextDate ? (
+                                        <div className="space-y-2">
+                                            <p className="text-xs font-bold uppercase text-slate-400">Prévu le</p>
+                                            <p className="text-xl font-serif text-slate-900 leading-none">
+                                                {receiptNextDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                                            </p>
+                                            <p className="text-lg font-bold text-gold">
+                                                {receiptNextTime || '--:--'}
+                                            </p>
+                                            <div className="pt-3 flex gap-2 justify-center">
+                                                <button
+                                                    onClick={() => setIsNextApptPickerOpen(true)}
+                                                    className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-bold rounded-lg transition-colors"
+                                                >
+                                                    Modifier
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setReceiptNextDate(null);
+                                                        setReceiptNextTime('');
+                                                    }}
+                                                    className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-500 text-xs font-bold rounded-lg transition-colors"
+                                                >
+                                                    Supprimer
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="py-4">
+                                            <div className="w-12 h-12 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-3">
+                                                <CalendarIcon className="w-6 h-6" />
+                                            </div>
+                                            <p className="text-sm text-slate-500 mb-4">
+                                                Programmer un rendez-vous de suivi maintenant ?
+                                            </p>
+                                            <button
+                                                onClick={() => setIsNextApptPickerOpen(true)}
+                                                className="w-full py-2 border border-slate-200 hover:border-gold/50 hover:text-gold hover:bg-gold/5 rounded-lg text-sm font-bold text-slate-600 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <Plus className="w-4 h-4" />
+                                                Ajouter une date
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
-
-                                {/* Next Time */}
-                                {receiptNextDate && (
-                                    <div>
-                                        <p className="text-xs font-bold text-slate-400 uppercase mb-2">Heure</p>
-                                        <input
-                                            type="time"
-                                            value={receiptNextTime}
-                                            onChange={(e) => setReceiptNextTime(e.target.value)}
-                                            className="w-full bg-white border border-slate-200 p-3 rounded-xl font-bold text-slate-900 outline-none focus:ring-2 focus:ring-gold/20"
-                                        />
-                                    </div>
-                                )}
                             </div>
 
-                            <div className="mt-8 space-y-3">
+                            {/* Actions Group */}
+                            <div className="mt-auto pt-6 space-y-3 relative z-10 w-full bg-slate-50">
                                 <button
                                     onClick={handleFinishAppointment}
                                     className="w-full bg-green-600 text-white py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-green-500 transition-all shadow-lg shadow-green-600/20 flex items-center justify-center gap-2"
@@ -589,6 +663,36 @@ const AdminAppointmentsPage: React.FC = () => {
                         </button>
 
                         <div className="text-center mb-6">
+                            {/* STATUS BADGE - REFINED */}
+                            <div className="flex justify-center mb-4">
+                                {(() => {
+                                    // Status Logic
+                                    const apptDate = new Date(viewModalAppt.date);
+                                    const today = new Date();
+                                    today.setHours(0, 0, 0, 0);
+
+                                    let statusConfig = { bg: 'bg-slate-100', text: 'text-slate-600', label: viewModalAppt.status };
+
+                                    if (viewModalAppt.status === 'completed') {
+                                        statusConfig = { bg: 'bg-green-100', text: 'text-green-700', label: 'Terminé' };
+                                    } else if (viewModalAppt.status === 'confirmed') {
+                                        if (apptDate < today) {
+                                            statusConfig = { bg: 'bg-red-100', text: 'text-red-700', label: 'Non Présenté' };
+                                        } else {
+                                            statusConfig = { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Confirmé' };
+                                        }
+                                    } else if (viewModalAppt.status === 'pending') {
+                                        statusConfig = { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'En Attente' };
+                                    }
+
+                                    return (
+                                        <span className={`px-4 py-1.5 rounded-full font-bold text-xs uppercase tracking-wider ${statusConfig.bg} ${statusConfig.text}`}>
+                                            {statusConfig.label}
+                                        </span>
+                                    );
+                                })()}
+                            </div>
+
                             <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
                                 <User className="w-8 h-8 text-gold" />
                             </div>
@@ -657,16 +761,18 @@ const AdminAppointmentsPage: React.FC = () => {
                             )}
                         </div>
 
-                        {/* Finish Action */}
-                        <div className="mt-8 pt-6 border-t border-slate-100 flex gap-4">
-                            <button
-                                onClick={() => openReceiptModal(viewModalAppt)}
-                                className="flex-1 bg-slate-900 text-white py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/20 flex items-center justify-center gap-2"
-                            >
-                                <Check className="w-5 h-5 text-gold" />
-                                Terminer & Payer
-                            </button>
-                        </div>
+                        {/* Finish Action - CONDITIONAL */}
+                        {viewModalAppt.status !== 'completed' && !(new Date(viewModalAppt.date) < new Date() && viewModalAppt.status === 'confirmed') && (
+                            <div className="mt-8 pt-6 border-t border-slate-100 flex gap-4">
+                                <button
+                                    onClick={() => openReceiptModal(viewModalAppt)}
+                                    className="flex-1 bg-slate-900 text-white py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/20 flex items-center justify-center gap-2"
+                                >
+                                    <Check className="w-5 h-5 text-gold" />
+                                    Terminer & Payer
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
