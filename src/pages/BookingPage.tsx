@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ChevronLeft, ChevronRight, Check, ChevronDown, AlertCircle } from 'lucide-react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { Id } from "../../convex/_generated/dataModel";
 import MoonMenuIcon from '../components/MoonMenuIcon';
 import PhoneInput from '../components/PhoneInput';
 import { groupServicesByCategory, formatDateForConvex } from '../utils/convexHelpers';
@@ -434,7 +435,7 @@ const BookingPage: React.FC = () => {
                                         try {
                                             const serviceIds = selectedTreatments
                                                 .map(name => services.find(s => s.name === name)?._id)
-                                                .filter(Boolean) as string[];
+                                                .filter(Boolean) as Id<"services">[];
 
                                             if (!selectedDate) {
                                                 throw new Error("Veuillez sélectionner une date");

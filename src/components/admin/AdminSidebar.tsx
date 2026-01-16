@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, LogOut, Calendar } from 'lucide-react';
 
 const AdminSidebar: React.FC = () => {
     const location = useLocation();
@@ -9,6 +9,7 @@ const AdminSidebar: React.FC = () => {
 
     const menuItems = [
         { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+        { name: 'Rendez-vous', path: '/admin/appointments', icon: Calendar },
         { name: 'Clients', path: '/admin/clients', icon: Users },
     ];
 
