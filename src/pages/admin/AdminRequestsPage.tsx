@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Check, X, Calendar, Phone, MessageCircle, Instagram } from 'lucide-react';
+import { Check, X, Calendar, Phone, MessageCircle, Instagram, Clock } from 'lucide-react';
+import { groupServicesByCategory } from '../../utils/convexHelpers';
 
 const AdminRequestsPage: React.FC = () => {
     const pendingAppointments = useQuery(api.appointments.getPending);
     const updateStatus = useMutation(api.appointments.updateStatus);
     const confirmAppointment = useMutation(api.appointments.confirmAppointment);
+    const allServices = useQuery(api.services.getAll);
 
     const [phoneMenuId, setPhoneMenuId] = useState<string | null>(null);
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -15,20 +17,39 @@ const AdminRequestsPage: React.FC = () => {
     const [confirmModalData, setConfirmModalData] = useState<any | null>(null);
     const [newDate, setNewDate] = useState('');
     const [newTime, setNewTime] = useState('');
+    const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+    const [adminNotes, setAdminNotes] = useState('');
+
+    // Toggle States for Modal
+    const [isDateOpen, setIsDateOpen] = useState(false);
+    const [isTimeOpen, setIsTimeOpen] = useState(false);
 
     const handleAction = async (id: any, newStatus: string) => {
         if (newStatus === 'cancelled') {
             await updateStatus({ id, status: newStatus });
             setDeleteConfirmId(null);
         } else if (newStatus === 'confirmed') {
-            // Find appt data
             const appt = pendingAppointments?.find(p => p._id === id);
             if (appt) {
                 setConfirmModalData(appt);
                 setNewDate(appt.date);
                 setNewTime(appt.time);
+                // Ensure service_ids is available, default to empty array
+                const services = appt.service_ids ? appt.service_ids : (appt.services ? appt.services.map((s: any) => s._id) : []);
+                setSelectedServiceIds(services);
+                setAdminNotes(appt.client_message || ''); // Pre-fill with client message if any, or empty
+                setIsDateOpen(false);
+                setIsTimeOpen(false);
             }
         }
+    };
+
+    const handleServiceToggle = (serviceId: string) => {
+        setSelectedServiceIds(prev =>
+            prev.includes(serviceId)
+                ? prev.filter(id => id !== serviceId)
+                : [...prev, serviceId]
+        );
     };
 
     const handleConfirmSave = async () => {
@@ -37,11 +58,15 @@ const AdminRequestsPage: React.FC = () => {
             id: confirmModalData._id,
             date: newDate,
             time: newTime,
+            serviceIds: selectedServiceIds as any,
+            adminNotes: adminNotes,
         });
         setConfirmModalData(null);
     };
 
-    if (pendingAppointments === undefined) {
+    const groupedServices = allServices ? groupServicesByCategory(allServices) : [];
+
+    if (pendingAppointments === undefined || allServices === undefined) {
         return <div className="text-slate-400 text-sm">Chargement...</div>;
     }
 
@@ -54,50 +79,132 @@ const AdminRequestsPage: React.FC = () => {
 
             {/* Confirmation Modal */}
             {confirmModalData && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in zoom-in-95">
-                        <h2 className="text-xl font-serif text-slate-900 mb-4">Confirmer le Rendez-vous</h2>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8 animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh] overflow-hidden">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-2xl font-serif text-slate-900">Confirmer le Rendez-vous</h2>
+                            <button onClick={() => setConfirmModalData(null)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-900 transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
 
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Client</label>
-                                <p className="font-bold text-slate-800">{confirmModalData.client?.first_name} {confirmModalData.client?.last_name}</p>
+                        <div className="flex-1 overflow-y-auto pr-2 space-y-6 custom-scrollbar">
+                            {/* Client Summary */}
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold">
+                                    {confirmModalData.client?.first_name?.[0]}
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-slate-900">{confirmModalData.client?.first_name} {confirmModalData.client?.last_name}</h3>
+                                    <p className="text-xs text-slate-500">{confirmModalData.client?.phone}</p>
+                                </div>
                             </div>
 
+                            {/* Date & Time Toggles */}
                             <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Date</label>
-                                    <input
-                                        type="date"
-                                        value={newDate}
-                                        onChange={(e) => setNewDate(e.target.value)}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-gold/50"
-                                    />
+                                {/* Date */}
+                                <div className="border border-slate-200 rounded-xl p-4 hover:border-gold/50 transition-colors cursor-pointer bg-white" onClick={() => setIsDateOpen(!isDateOpen)}>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="text-xs font-bold uppercase text-slate-400">Date</span>
+                                        <Calendar className="w-4 h-4 text-gold" />
+                                    </div>
+                                    <div className="font-bold text-slate-900 text-lg">{newDate}</div>
+
+                                    {isDateOpen && (
+                                        <div className="mt-4 pt-4 border-t border-slate-100 animate-in slide-in-from-top-2" onClick={(e) => e.stopPropagation()}>
+                                            <input
+                                                type="date"
+                                                value={newDate}
+                                                onChange={(e) => setNewDate(e.target.value)}
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-gold/20"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Heure</label>
-                                    <input
-                                        type="time"
-                                        value={newTime}
-                                        onChange={(e) => setNewTime(e.target.value)}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-gold/50"
-                                    />
+
+                                {/* Time */}
+                                <div className="border border-slate-200 rounded-xl p-4 hover:border-gold/50 transition-colors cursor-pointer bg-white" onClick={() => setIsTimeOpen(!isTimeOpen)}>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="text-xs font-bold uppercase text-slate-400">Heure</span>
+                                        <Clock className="w-4 h-4 text-gold" />
+                                    </div>
+                                    <div className="font-bold text-slate-900 text-lg">{newTime}</div>
+
+                                    {isTimeOpen && (
+                                        <div className="mt-4 pt-4 border-t border-slate-100 animate-in slide-in-from-top-2" onClick={(e) => e.stopPropagation()}>
+                                            <input
+                                                type="time"
+                                                value={newTime}
+                                                onChange={(e) => setNewTime(e.target.value)}
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-gold/20"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
+                            </div>
+
+                            {/* Services Select */}
+                            <div>
+                                <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
+                                    <span className="w-1 h-4 bg-gold rounded-full"></span>
+                                    Services
+                                </h4>
+                                <div className="space-y-4">
+                                    {groupedServices.map((group: any) => (
+                                        <div key={group.id} className="border border-slate-100 rounded-xl p-4 bg-slate-50/50">
+                                            <h5 className="font-bold text-slate-700 mb-3 uppercase text-xs tracking-wider">{group.title}</h5>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                {group.treatments.map((svc: any) => {
+                                                    const isSelected = selectedServiceIds.includes(svc._id);
+                                                    return (
+                                                        <button
+                                                            key={svc._id}
+                                                            onClick={() => handleServiceToggle(svc._id)}
+                                                            className={`text-left px-3 py-2 rounded-lg text-sm border transition-all duration-200 flex items-center justify-between group
+                                                                ${isSelected
+                                                                    ? 'bg-slate-900 text-white border-slate-900'
+                                                                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                                                                }`}
+                                                        >
+                                                            <span className="font-medium">{svc.name}</span>
+                                                            {isSelected && <Check className="w-3.5 h-3.5 text-gold" />}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Admin Notes */}
+                            <div>
+                                <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
+                                    <span className="w-1 h-4 bg-slate-400 rounded-full"></span>
+                                    Notes Internes
+                                </h4>
+                                <textarea
+                                    value={adminNotes}
+                                    onChange={(e) => setAdminNotes(e.target.value)}
+                                    placeholder="Ajouter une note privée (ex: préférence client, allergies...)"
+                                    className="w-full h-24 bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-slate-900/10 resize-none transition-all"
+                                />
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-3 mt-8">
+                        <div className="flex items-center gap-3 mt-6 pt-6 border-t border-slate-100">
                             <button
                                 onClick={() => setConfirmModalData(null)}
-                                className="flex-1 px-4 py-3 rounded-xl bg-slate-100 text-slate-600 font-bold text-sm hover:bg-slate-200 transition-colors"
+                                className="px-6 py-3 rounded-xl bg-white border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors"
                             >
                                 Annuler
                             </button>
                             <button
                                 onClick={handleConfirmSave}
-                                className="flex-1 px-4 py-3 rounded-xl bg-emerald-500 text-white font-bold text-sm hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20"
+                                className="flex-1 px-4 py-3 rounded-xl bg-grad-gold text-white font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-gold/20 flex items-center justify-center gap-2"
                             >
-                                Confirmer
+                                <Check className="w-4 h-4" />
+                                Confirmer & Enregistrer
                             </button>
                         </div>
                     </div>

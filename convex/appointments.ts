@@ -70,6 +70,7 @@ export const confirmAppointment = mutation({
         date: v.string(),
         time: v.string(),
         serviceIds: v.optional(v.array(v.id("services"))),
+        adminNotes: v.optional(v.string()), // Added
     },
     handler: async (ctx, args) => {
         const updates: any = {
@@ -79,6 +80,9 @@ export const confirmAppointment = mutation({
         };
         if (args.serviceIds) {
             updates.service_ids = args.serviceIds;
+        }
+        if (args.adminNotes) {
+            updates.admin_notes = args.adminNotes;
         }
         await ctx.db.patch(args.id, updates);
     },

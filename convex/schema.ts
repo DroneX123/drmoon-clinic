@@ -59,6 +59,7 @@ export default defineSchema({
         time: v.string(), // "09:00" ← ADDED
         status: v.string(), // "pending", "confirmed", "completed", "cancelled"
         client_message: v.optional(v.string()),
+        admin_notes: v.optional(v.string()), // Internal notes from admin
     }),
 
     // 7. CONSULTATIONS - Revenue & Stock Usage (Admin)
