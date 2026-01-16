@@ -11,6 +11,8 @@
 import type * as admin from "../admin.js";
 import type * as appointments from "../appointments.js";
 import type * as auth from "../auth.js";
+import type * as consultations from "../consultations.js";
+import type * as products from "../products.js";
 import type * as reseed from "../reseed.js";
 import type * as seed from "../seed.js";
 import type * as services from "../services.js";
@@ -25,6 +27,8 @@ declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   appointments: typeof appointments;
   auth: typeof auth;
+  consultations: typeof consultations;
+  products: typeof products;
   reseed: typeof reseed;
   seed: typeof seed;
   services: typeof services;

@@ -19,8 +19,11 @@ const ClientContactDisplay: React.FC<ClientContactDisplayProps> = ({ phone, inst
         return `https://instagram.com/${clean}`;
     };
 
+    // Calculate WhatsApp link
+    const waHref = `https://wa.me/${phone.replace(/\+/g, '').replace(/\s/g, '')}`;
+
     return (
-        <div className={`flex items-center gap-2 ${className || ''}`}>
+        <div className={`flex items-center gap-1.5 ${className || ''}`}>
             {/* Phone Button */}
             <a
                 href={telHref}
@@ -29,6 +32,17 @@ const ClientContactDisplay: React.FC<ClientContactDisplayProps> = ({ phone, inst
             >
                 <Phone className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-900 transition-colors" />
                 <span>{phone}</span>
+            </a>
+
+            {/* WhatsApp Button - NEW */}
+            <a
+                href={waHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center bg-green-50 border border-green-100 hover:bg-green-100 hover:border-green-200 text-green-600 w-8 h-8 rounded-lg transition-all"
+                title="WhatsApp"
+            >
+                <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" className="w-4 h-4" alt="WA" />
             </a>
 
             {/* Instagram Button */}

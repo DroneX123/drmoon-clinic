@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Check, X, Calendar, Phone, MessageCircle, Instagram, Clock } from 'lucide-react';
+import { Check, X, Calendar, Clock } from 'lucide-react';
 import { groupServicesByCategory } from '../../utils/convexHelpers';
 import AdminCalendar from '../../components/AdminCalendar';
 import AdminTimeSelector from '../../components/AdminTimeSelector';

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Phone, Plus, X, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Phone, Plus, X, Check, DollarSign, Package } from 'lucide-react';
 import { formatDateForConvex, groupServicesByCategory } from '../../utils/convexHelpers';
 import AdminCalendar from '../../components/AdminCalendar';
 import AdminTimeSelector from '../../components/AdminTimeSelector';
@@ -16,12 +16,68 @@ const AdminAppointmentsPage: React.FC = () => {
         date: formatDateForConvex(selectedDate)
     });
 
-    // Services for Modal
+    // Services & Products for Modal
     const allServices = useQuery(api.services.getAllServices);
+    const allProducts = useQuery(api.products.getAll);
+
+    // Mutations
     const createAppointment = useMutation(api.appointments.createAppointment);
+    const completeAppointment = useMutation(api.consultations.completeAppointment);
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // Receipt / Finish State
+    const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+    const [receiptProducts, setReceiptProducts] = useState<{ productId: string, quantity: number }[]>([]);
+    const [receiptFinalPrice, setReceiptFinalPrice] = useState(0);
+    const [receiptNextDate, setReceiptNextDate] = useState<Date | null>(null);
+    const [receiptNextTime, setReceiptNextTime] = useState('');
+    const [receiptNotes, setReceiptNotes] = useState('');
+
+    // Pre-fill receipt when opening
+    const openReceiptModal = (appt: any) => {
+        // Calculate initial price (sum of services)
+        const initialPrice = appt.services.reduce((acc: number, s: any) => acc + s.price, 0);
+        setReceiptFinalPrice(initialPrice);
+        setReceiptProducts([]); // Start with no extra products
+        setReceiptNextDate(null);
+        setReceiptNextTime('');
+        setReceiptNotes('');
+        setIsReceiptModalOpen(true);
+        // We keep viewModalAppt set so we know which appt we are finishing
+    };
+
+    const handleFinishAppointment = async () => {
+        if (!viewModalAppt) return;
+
+        await completeAppointment({
+            appointmentId: viewModalAppt._id,
+            productsUsed: receiptProducts as any,
+            finalAmount: receiptFinalPrice,
+            paymentMethod: "Cash", // Defaulting for now
+            nextAppointmentDate: receiptNextDate ? formatDateForConvex(receiptNextDate) : undefined,
+            nextAppointmentTime: receiptNextTime || undefined,
+            adminNotes: receiptNotes,
+        });
+
+        setIsReceiptModalOpen(false);
+        setViewModalAppt(null); // Close everything
+    };
+
+    const handleAddProduct = (productId: string) => {
+        setReceiptProducts(prev => {
+            const existing = prev.find(p => p.productId === productId);
+            if (existing) {
+                return prev.map(p => p.productId === productId ? { ...p, quantity: p.quantity + 1 } : p);
+            }
+            return [...prev, { productId, quantity: 1 }];
+        });
+    };
+
+    const handleRemoveProduct = (productId: string) => {
+        setReceiptProducts(prev => prev.filter(p => p.productId !== productId));
+    };
 
     // New Appointment Form State
     const [clientFirstName, setClientFirstName] = useState('');
@@ -185,57 +241,71 @@ const AdminAppointmentsPage: React.FC = () => {
                         <p className="text-slate-400 font-medium">Aucun rendez-vous pour cette date.</p>
                     </div>
                 ) : (
-                    appointments.map((appt) => (
-                        <div
-                            key={appt._id}
-                            onClick={() => setViewModalAppt(appt)}
-                            className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex items-center justify-between group cursor-pointer hover:border-gold/30"
-                        >
-                            <div className="flex items-center gap-4">
-                                {/* Time Column */}
-                                <div className="flex flex-col items-center justify-center px-4 border-r border-slate-100 min-w-[80px]">
-                                    <span className="text-lg font-bold text-slate-900">{appt.time}</span>
-                                    <span className="text-xs text-slate-400 uppercase font-medium">Heure</span>
-                                </div>
+                    appointments.map((appt) => {
+                        // Check if missed: Confirmed + Date is in past
+                        const apptDate = new Date(appt.date);
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const isMissed = appt.status === 'confirmed' && apptDate < today;
 
-                                {/* Patient Info */}
-                                <div className="flex flex-col">
-                                    <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                        {appt.client ? `${appt.client.first_name} ${appt.client.last_name}` : 'Client Inconnu'}
-                                        {appt.client?.phone && (
-                                            <ClientContactDisplay
-                                                phone={appt.client.phone}
-                                                instagram={appt.client.instagram}
-                                                className="scale-90 origin-left"
-                                            />
-                                        )}
-                                    </h3>
-                                    <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
-                                        <span className="bg-gold/10 text-gold px-2 py-0.5 rounded-md font-medium text-xs">
-                                            {appt.services.length} Service(s)
-                                        </span>
-                                        <span>•</span>
-                                        <span className="truncate max-w-[200px]">
-                                            {appt.services.map((s: any) => s.name).join(', ')}
-                                        </span>
+                        return (
+                            <div
+                                key={appt._id}
+                                onClick={() => setViewModalAppt(appt)}
+                                className={`p-5 rounded-2xl border shadow-sm hover:shadow-md transition-all flex items-center justify-between group cursor-pointer 
+                                ${isMissed
+                                        ? 'bg-red-50 border-red-200 hover:border-red-300'
+                                        : 'bg-white border-slate-200 hover:border-gold/30'
+                                    }`}
+                            >
+                                <div className="flex items-center gap-4">
+                                    {/* Time Column */}
+                                    <div className={`flex flex-col items-center justify-center px-4 border-r min-w-[80px]
+                                     ${isMissed ? 'border-red-200 text-red-700' : 'border-slate-100 text-slate-900'}`}>
+                                        <span className="text-lg font-bold">{appt.time}</span>
+                                        {isMissed && <span className="text-[10px] font-bold uppercase bg-red-200 text-red-800 px-1 rounded">Raté</span>}
+                                        {!isMissed && <span className="text-xs text-slate-400 uppercase font-medium">Heure</span>}
                                     </div>
-                                    {appt.admin_notes && (
-                                        <p className="text-xs text-slate-500 mt-1 bg-slate-50 p-1 rounded border border-slate-100 inline-block">
-                                            Note Admin: "{appt.admin_notes}"
-                                        </p>
-                                    )}
+
+                                    {/* Patient Info */}
+                                    <div className="flex flex-col">
+                                        <h3 className={`text-lg font-bold flex items-center gap-2 ${isMissed ? 'text-red-900' : 'text-slate-900'}`}>
+                                            {appt.client ? `${appt.client.first_name} ${appt.client.last_name}` : 'Client Inconnu'}
+                                            {appt.client?.phone && (
+                                                <ClientContactDisplay
+                                                    phone={appt.client.phone}
+                                                    instagram={appt.client.instagram}
+                                                    className="scale-90 origin-left"
+                                                />
+                                            )}
+                                        </h3>
+                                        <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
+                                            <span className={`px-2 py-0.5 rounded-md font-medium text-xs ${isMissed ? 'bg-red-100 text-red-600' : 'bg-gold/10 text-gold'}`}>
+                                                {appt.services.length} Service(s)
+                                            </span>
+                                            <span>•</span>
+                                            <span className="truncate max-w-[200px]">
+                                                {appt.services.map((s: any) => s.name).join(', ')}
+                                            </span>
+                                        </div>
+                                        {appt.admin_notes && (
+                                            <p className="text-xs text-slate-500 mt-1 bg-slate-50 p-1 rounded border border-slate-100 inline-block">
+                                                Note Admin: "{appt.admin_notes}"
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Status */}
+                                <div className="flex items-center gap-4">
+                                    <span className={`text-xs font-bold transition-colors uppercase tracking-wider ${isMissed ? 'text-red-400 group-hover:text-red-600' : 'text-slate-400 group-hover:text-gold'}`}>
+                                        {isMissed ? 'Non Présenté' : 'Voir Détails'}
+                                    </span>
+                                    <ChevronRight className={`w-5 h-5 transition-colors ${isMissed ? 'text-red-300 group-hover:text-red-500' : 'text-slate-300 group-hover:text-gold'}`} />
                                 </div>
                             </div>
-
-                            {/* Status */}
-                            <div className="flex items-center gap-4">
-                                <span className="text-xs font-bold text-slate-400 group-hover:text-gold transition-colors uppercase tracking-wider">
-                                    Voir Détails
-                                </span>
-                                <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-gold transition-colors" />
-                            </div>
-                        </div>
-                    ))
+                        )
+                    })
                 )}
             </div>
 
@@ -380,6 +450,133 @@ const AdminAppointmentsPage: React.FC = () => {
                 </div>
             )}
 
+            {/* RECEIPT / FINISH MODAL */}
+            {isReceiptModalOpen && viewModalAppt && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full p-8 flex flex-col md:flex-row gap-8 max-h-[90vh] overflow-hidden">
+
+                        {/* Left: Receipt & Stock */}
+                        <div className="flex-1 flex flex-col overflow-y-auto pr-2 custom-scrollbar">
+                            <h2 className="font-serif text-2xl text-slate-900 mb-6 flex items-center gap-2">
+                                <Package className="w-6 h-6 text-gold" />
+                                Consultation & Stock
+                            </h2>
+
+                            {/* Products Section */}
+                            <div className="mb-8">
+                                <h3 className="text-xs font-bold uppercase text-slate-400 mb-3 tracking-wider">Produits Utilisés (Stock)</h3>
+                                <div className="flex flex-wrap gap-2 mb-4">
+                                    {allProducts?.map(product => (
+                                        <button
+                                            key={product._id}
+                                            onClick={() => handleAddProduct(product._id)}
+                                            className="bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 transition-colors flex items-center gap-2"
+                                        >
+                                            <Plus className="w-3 h-3 text-gold" />
+                                            {product.name}
+                                            <span className="text-xs text-slate-400">({product.stock_quantity})</span>
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Selected Products List */}
+                                <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-100 min-h-[100px]">
+                                    {receiptProducts.length === 0 && <p className="text-sm text-slate-400 italic">Aucun produit sélectionné.</p>}
+                                    {receiptProducts.map(item => {
+                                        const product = allProducts?.find(p => p._id === item.productId);
+                                        return (
+                                            <div key={item.productId} className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
+                                                <span className="font-medium text-slate-700 text-sm">{product?.name}</span>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="font-bold text-slate-900">x{item.quantity}</span>
+                                                    <button onClick={() => handleRemoveProduct(item.productId)} className="text-slate-400 hover:text-red-500">
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Payment Section */}
+                            <div>
+                                <h3 className="text-xs font-bold uppercase text-slate-400 mb-3 tracking-wider">Paiement</h3>
+                                <div className="bg-slate-900 p-6 rounded-xl text-white shadow-xl shadow-slate-900/10">
+                                    <div className="flex justify-between items-end mb-2">
+                                        <span className="text-white/60 font-medium">Total à Payer</span>
+                                        <div className="flex items-center gap-2">
+                                            <DollarSign className="w-5 h-5 text-gold" />
+                                            <input
+                                                type="number"
+                                                value={receiptFinalPrice}
+                                                onChange={(e) => setReceiptFinalPrice(Number(e.target.value))}
+                                                className="bg-transparent text-right text-3xl font-bold text-white outline-none w-[150px] border-b border-white/20 focus:border-gold"
+                                            />
+                                            <span className="text-xl font-bold text-gold">DA</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-right text-xs text-white/40">*Montant modifiable manuellement</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Right: Next Appointment & Action */}
+                        <div className="w-full md:w-[320px] bg-slate-50 -my-8 -mr-8 p-8 border-l border-slate-200 flex flex-col">
+                            <h3 className="font-bold text-slate-900 mb-6 flex items-center gap-2">
+                                <CalendarIcon className="w-5 h-5 text-gold" />
+                                Prochain Rendez-vous
+                            </h3>
+
+                            <div className="flex-1 space-y-6">
+                                {/* Next Date */}
+                                <div>
+                                    <p className="text-xs font-bold text-slate-400 uppercase mb-2">Date (Optionnel)</p>
+                                    <AdminCalendar
+                                        value={receiptNextDate || new Date()}
+                                        onChange={setReceiptNextDate}
+                                    />
+                                    {receiptNextDate && (
+                                        <p className="text-center text-xs font-bold text-gold mt-2">
+                                            {receiptNextDate.toLocaleDateString('fr-FR')} sélectionné
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Next Time */}
+                                {receiptNextDate && (
+                                    <div>
+                                        <p className="text-xs font-bold text-slate-400 uppercase mb-2">Heure</p>
+                                        <input
+                                            type="time"
+                                            value={receiptNextTime}
+                                            onChange={(e) => setReceiptNextTime(e.target.value)}
+                                            className="w-full bg-white border border-slate-200 p-3 rounded-xl font-bold text-slate-900 outline-none focus:ring-2 focus:ring-gold/20"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="mt-8 space-y-3">
+                                <button
+                                    onClick={handleFinishAppointment}
+                                    className="w-full bg-green-600 text-white py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-green-500 transition-all shadow-lg shadow-green-600/20 flex items-center justify-center gap-2"
+                                >
+                                    <Check className="w-5 h-5" />
+                                    Confirmer & Terminer
+                                </button>
+                                <button
+                                    onClick={() => setIsReceiptModalOpen(false)}
+                                    className="w-full bg-white border border-slate-200 text-slate-500 py-3 rounded-xl font-bold text-sm hover:bg-slate-100 transition-colors"
+                                >
+                                    Annuler
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* VIEW APPOINTMENT DETAILS MODAL */}
             {viewModalAppt && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-200">
@@ -458,6 +655,17 @@ const AdminAppointmentsPage: React.FC = () => {
                                     </div>
                                 </div>
                             )}
+                        </div>
+
+                        {/* Finish Action */}
+                        <div className="mt-8 pt-6 border-t border-slate-100 flex gap-4">
+                            <button
+                                onClick={() => openReceiptModal(viewModalAppt)}
+                                className="flex-1 bg-slate-900 text-white py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/20 flex items-center justify-center gap-2"
+                            >
+                                <Check className="w-5 h-5 text-gold" />
+                                Terminer & Payer
+                            </button>
                         </div>
                     </div>
                 </div>
