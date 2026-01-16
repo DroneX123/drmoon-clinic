@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Phone
 import { formatDateForConvex, groupServicesByCategory } from '../../utils/convexHelpers';
 import AdminCalendar from '../../components/AdminCalendar';
 import AdminTimeSelector from '../../components/AdminTimeSelector';
+import ClientContactDisplay from '../../components/ClientContactDisplay';
 
 const AdminAppointmentsPage: React.FC = () => {
     // Date Selection State
@@ -202,9 +203,11 @@ const AdminAppointmentsPage: React.FC = () => {
                                     <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                                         {appt.client ? `${appt.client.first_name} ${appt.client.last_name}` : 'Client Inconnu'}
                                         {appt.client?.phone && (
-                                            <span className="text-xs font-normal text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                                <Phone className="w-3 h-3" />  {appt.client.phone}
-                                            </span>
+                                            <ClientContactDisplay
+                                                phone={appt.client.phone}
+                                                instagram={appt.client.instagram}
+                                                className="scale-90 origin-left"
+                                            />
                                         )}
                                     </h3>
                                     <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
@@ -392,11 +395,16 @@ const AdminAppointmentsPage: React.FC = () => {
                             <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
                                 <User className="w-8 h-8 text-gold" />
                             </div>
-                            <h2 className="text-2xl font-serif text-slate-900">{viewModalAppt.client?.first_name} {viewModalAppt.client?.last_name}</h2>
-                            <a href={`tel:${viewModalAppt.client?.phone}`} className="inline-flex items-center gap-2 text-slate-500 hover:text-gold transition-colors mt-2 bg-slate-50 px-3 py-1 rounded-full text-sm font-medium">
-                                <Phone className="w-3 h-3" />
-                                {viewModalAppt.client?.phone}
-                            </a>
+                            <h2 className="text-2xl font-serif text-slate-900 mb-2">{viewModalAppt.client?.first_name} {viewModalAppt.client?.last_name}</h2>
+
+                            {viewModalAppt.client?.phone && (
+                                <div className="flex justify-center">
+                                    <ClientContactDisplay
+                                        phone={viewModalAppt.client.phone}
+                                        instagram={viewModalAppt.client.instagram}
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         <div className="space-y-6">
