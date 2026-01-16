@@ -1,5 +1,5 @@
 import { mutation } from "./_generated/server";
-import { v } from "convex/values";
+
 
 /**
  * SEED SERVICES
@@ -82,5 +82,20 @@ export const seedServices = mutation({
         });
 
         return { message: "Services seeded successfully", count: 7 };
+    },
+});
+
+export const seedAdmin = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const existing = await ctx.db.query("admins").first();
+        if (!existing) {
+            await ctx.db.insert("admins", {
+                username: "admin",
+                password: "drmoon2024",
+            });
+            return "Admin seeded";
+        }
+        return "Admin already exists";
     },
 });

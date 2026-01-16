@@ -4,6 +4,8 @@ import { AnimatePresence } from 'framer-motion';
 import LandingPage from './pages/LandingPage';
 import BookingPage from './pages/BookingPage';
 import OffersPage from './pages/OffersPage';
+import AdminLoginPage from './pages/admin/AdminLoginPage';
+import AdminDashboard from './pages/admin/AdminDashboard';
 import PageTransition from './components/PageTransition';
 import { SpeedInsights } from "@vercel/speed-insights/react"
 
@@ -17,6 +19,8 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/" element={<PageTransition><LandingPage /></PageTransition>} />
           <Route path="/booking" element={<PageTransition><BookingPage /></PageTransition>} />
           <Route path="/offers" element={<PageTransition><OffersPage /></PageTransition>} />
+          <Route path="/admin" element={<AdminLoginPage />} />
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
         </Routes>
       </AnimatePresence>
       <SpeedInsights />

@@ -2,6 +2,12 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+    // 0. ADMINS
+    admins: defineTable({
+        username: v.string(),
+        password: v.string(),
+    }),
+
     // 1. SERVICES
     services: defineTable({
         name: v.string(),
