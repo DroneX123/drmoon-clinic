@@ -4,6 +4,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Check, ChevronDown, AlertCircle }
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import MoonMenuIcon from '../components/MoonMenuIcon';
+import PhoneInput from '../components/PhoneInput';
 import { groupServicesByCategory, formatDateForConvex } from '../utils/convexHelpers';
 
 const BookingPage: React.FC = () => {
@@ -38,13 +39,16 @@ const BookingPage: React.FC = () => {
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
-        phone: '+213 ',
+        phone: '+213',
         email: '', // OPTIONAL now
         instagram: '',
         description: ''
     });
 
+
+
     const [instagramError, setInstagramError] = useState<string>('');
+    const [isPhoneValid, setIsPhoneValid] = useState(false);
 
     // Calendar Logic
     const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
@@ -95,13 +99,8 @@ const BookingPage: React.FC = () => {
         }
     };
 
-    // Phone Validation
-    const validatePhone = (value: string): boolean => {
-        // Must have at least +213 and 9 digits
-        const cleaned = value.replace(/\s/g, '');
-        const phonePattern = /^\+213\d{9,}$/;
-        return phonePattern.test(cleaned);
-    };
+    // Phone Validation logic is handled by PhoneInput component
+
 
     const handleInstagramChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
@@ -111,7 +110,7 @@ const BookingPage: React.FC = () => {
 
     const isFormValid = selectedDate &&
         formData.firstName && formData.lastName &&
-        formData.phone && validatePhone(formData.phone) && // Phone required and valid
+        formData.phone && isPhoneValid && // Phone required and valid
         formData.instagram && !instagramError && // Instagram present and valid
         selectedTreatments.length > 0;
     // Price Calculation
@@ -334,17 +333,13 @@ const BookingPage: React.FC = () => {
                                     {/* Phone */}
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold uppercase tracking-widest text-white/40 ml-1">Téléphone</label>
-                                        <div className="relative">
-                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2 border-r border-white/10 pr-3 pointer-events-none">
-                                                <span className="text-lg">🇩🇿</span>
-                                            </div>
-                                            <input
-                                                type="tel"
-                                                value={formData.phone}
-                                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                                className="w-full bg-white/5 border border-white/10 rounded-xl pl-20 pr-4 py-3 text-white placeholder:text-white/20 focus:border-gold/50 focus:outline-none focus:bg-white/10 transition-all font-light"
-                                            />
-                                        </div>
+                                        <PhoneInput
+                                            value={formData.phone}
+                                            onChange={(val, isValid) => {
+                                                setFormData({ ...formData, phone: val });
+                                                setIsPhoneValid(isValid);
+                                            }}
+                                        />
                                     </div>
 
                                     {/* Email (Optional) */}

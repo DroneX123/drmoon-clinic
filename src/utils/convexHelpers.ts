@@ -9,7 +9,7 @@ export const groupServicesByCategory = (services: any[]) => {
             .filter((s) => s.category === cat)
             .map((s) => ({
                 name: s.name,
-                price: `${s.price.toLocaleString('fr-FR')} DA`,
+                price: s.price === 0 ? 'Offert' : `${s.price.toLocaleString('fr-FR')} DA`,
                 duration: `${s.duration_minutes} min`,
                 description: s.description, // Now includes description!
                 _id: s._id,

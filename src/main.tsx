@@ -6,7 +6,7 @@ import '@fontsource/inter'
 import '@fontsource/lato/400.css';
 import '@fontsource/lato/700.css';
 import './index.css'
-import App from './App.jsx'
+import App from './App.tsx'
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string)
 
