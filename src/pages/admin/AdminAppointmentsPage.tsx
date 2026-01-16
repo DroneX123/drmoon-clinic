@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Check, X, Calendar, Phone, MessageCircle } from 'lucide-react';
+import { Check, X, Calendar, Phone, MessageCircle, Instagram } from 'lucide-react';
 
 const AdminAppointmentsPage: React.FC = () => {
     const pendingAppointments = useQuery(api.appointments.getPending);
@@ -55,32 +55,51 @@ const AdminAppointmentsPage: React.FC = () => {
 
                                     {appt.client?.phone && (
                                         <div className="relative">
+                                            {/* Backdrop */}
+                                            {phoneMenuId === appt._id && (
+                                                <div
+                                                    className="fixed inset-0 z-10 cursor-default"
+                                                    onClick={() => setPhoneMenuId(null)}
+                                                />
+                                            )}
+
                                             <button
                                                 onClick={() => setPhoneMenuId(phoneMenuId === appt._id ? null : appt._id)}
-                                                className="flex items-center gap-1 hover:text-slate-800 transition-colors"
+                                                className="relative z-20 flex items-center gap-1 hover:text-slate-800 transition-colors"
                                             >
                                                 <Phone className="w-4 h-4 text-gold" />
                                                 <span className="underline decoration-dotted">{appt.client.phone}</span>
                                             </button>
 
                                             {phoneMenuId === appt._id && (
-                                                <div className="absolute top-full left-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-100 p-2 z-10 min-w-[150px] flex flex-col gap-1">
+                                                <div className="absolute top-full left-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-100 p-2 z-20 min-w-[160px] flex flex-col gap-1 w-max">
                                                     <a
                                                         href={`tel:${appt.client.phone}`}
-                                                        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-slate-700 text-xs font-bold"
+                                                        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 text-slate-700 text-xs font-bold transition-colors"
                                                     >
-                                                        <Phone className="w-3 h-3" />
+                                                        <Phone className="w-3.5 h-3.5" />
                                                         Appeler
                                                     </a>
                                                     <a
                                                         href={`https://wa.me/${appt.client.phone.replace(/\+/g, '').replace(/\s/g, '')}`}
                                                         target="_blank"
                                                         rel="noreferrer"
-                                                        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-green-50 text-green-600 text-xs font-bold"
+                                                        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-green-50 text-green-600 text-xs font-bold transition-colors"
                                                     >
-                                                        <MessageCircle className="w-3 h-3" />
+                                                        <MessageCircle className="w-3.5 h-3.5" />
                                                         WhatsApp
                                                     </a>
+                                                    {appt.client.instagram && (
+                                                        <a
+                                                            href={appt.client.instagram.startsWith('http') ? appt.client.instagram : `https://instagram.com/${appt.client.instagram.replace('@', '')}`}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-pink-50 text-pink-600 text-xs font-bold transition-colors"
+                                                        >
+                                                            <Instagram className="w-3.5 h-3.5" />
+                                                            Instagram
+                                                        </a>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
