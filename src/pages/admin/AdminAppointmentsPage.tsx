@@ -98,6 +98,9 @@ const AdminAppointmentsPage: React.FC = () => {
     // Group Services
     const groupedServices = allServices ? groupServicesByCategory(allServices) : [];
 
+    // View Details Modal State
+    const [viewModalAppt, setViewModalAppt] = useState<any>(null);
+
     return (
         <div className="h-full flex flex-col relative">
             <div className="mb-6 flex items-center justify-between">
@@ -182,7 +185,11 @@ const AdminAppointmentsPage: React.FC = () => {
                     </div>
                 ) : (
                     appointments.map((appt) => (
-                        <div key={appt._id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex items-center justify-between group">
+                        <div
+                            key={appt._id}
+                            onClick={() => setViewModalAppt(appt)}
+                            className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex items-center justify-between group cursor-pointer hover:border-gold/30"
+                        >
                             <div className="flex items-center gap-4">
                                 {/* Time Column */}
                                 <div className="flex flex-col items-center justify-center px-4 border-r border-slate-100 min-w-[80px]">
@@ -214,17 +221,15 @@ const AdminAppointmentsPage: React.FC = () => {
                                             Note Admin: "{appt.admin_notes}"
                                         </p>
                                     )}
-                                    {appt.client_message && !appt.admin_notes && (
-                                        <p className="text-xs text-slate-400 mt-1 italic">Note Client: "{appt.client_message}"</p>
-                                    )}
                                 </div>
                             </div>
 
                             {/* Status */}
-                            <div>
-                                <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                                    Confirmé
+                            <div className="flex items-center gap-4">
+                                <span className="text-xs font-bold text-slate-400 group-hover:text-gold transition-colors uppercase tracking-wider">
+                                    Voir Détails
                                 </span>
+                                <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-gold transition-colors" />
                             </div>
                         </div>
                     ))
@@ -367,6 +372,84 @@ const AdminAppointmentsPage: React.FC = () => {
                                 <Check className="w-4 h-4" />
                                 Créer le Rendez-vous
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* VIEW APPOINTMENT DETAILS MODAL */}
+            {viewModalAppt && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 animate-in zoom-in-95 duration-200 flex flex-col relative">
+                        <button
+                            onClick={() => setViewModalAppt(null)}
+                            className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-900 transition-colors"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+
+                        <div className="text-center mb-6">
+                            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
+                                <User className="w-8 h-8 text-gold" />
+                            </div>
+                            <h2 className="text-2xl font-serif text-slate-900">{viewModalAppt.client?.first_name} {viewModalAppt.client?.last_name}</h2>
+                            <a href={`tel:${viewModalAppt.client?.phone}`} className="inline-flex items-center gap-2 text-slate-500 hover:text-gold transition-colors mt-2 bg-slate-50 px-3 py-1 rounded-full text-sm font-medium">
+                                <Phone className="w-3 h-3" />
+                                {viewModalAppt.client?.phone}
+                            </a>
+                        </div>
+
+                        <div className="space-y-6">
+                            {/* Date & Time */}
+                            <div className="flex items-center justify-between bg-slate-900 text-white p-4 rounded-xl shadow-lg shadow-slate-900/20">
+                                <div className="text-center flex-1 border-r border-white/10">
+                                    <p className="text-xs text-white/50 uppercase font-bold mb-1">Date</p>
+                                    <p className="font-bold text-lg capitalize">
+                                        {new Date(viewModalAppt.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                                    </p>
+                                </div>
+                                <div className="text-center flex-1">
+                                    <p className="text-xs text-white/50 uppercase font-bold mb-1">Heure</p>
+                                    <p className="font-bold text-lg text-gold">{viewModalAppt.time}</p>
+                                </div>
+                            </div>
+
+                            {/* Services List */}
+                            <div>
+                                <h3 className="text-xs font-bold uppercase text-slate-400 mb-3 tracking-wider">Services Réservés</h3>
+                                <div className="space-y-2">
+                                    {viewModalAppt.services.map((svc: any) => (
+                                        <div key={svc._id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                            <div>
+                                                <p className="font-bold text-slate-900 text-sm">{svc.name}</p>
+                                                <p className="text-xs text-slate-400">{svc.duration_minutes} min</p>
+                                            </div>
+                                            <span className="font-serif text-gold font-bold">{svc.price > 0 ? `${svc.price.toLocaleString()} DA` : 'Offert'}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Notes */}
+                            {(viewModalAppt.admin_notes || viewModalAppt.client_message) && (
+                                <div>
+                                    <h3 className="text-xs font-bold uppercase text-slate-400 mb-3 tracking-wider">Notes</h3>
+                                    <div className="space-y-2">
+                                        {viewModalAppt.admin_notes && (
+                                            <div className="text-sm bg-yellow-50 border border-yellow-100 p-3 rounded-xl text-yellow-800">
+                                                <span className="font-bold block text-xs uppercase mb-1 opacity-70">Note Admin</span>
+                                                {viewModalAppt.admin_notes}
+                                            </div>
+                                        )}
+                                        {viewModalAppt.client_message && (
+                                            <div className="text-sm bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-600 italic">
+                                                <span className="font-bold block text-xs uppercase mb-1 opacity-70 not-italic">Message Client</span>
+                                                "{viewModalAppt.client_message}"
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
