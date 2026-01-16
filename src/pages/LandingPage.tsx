@@ -3,7 +3,7 @@ import { ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { smoothScrollTo } from '../utils/smoothScroll';
 import langingPageBg from '../assets/langingPageBg.png';
-import ServiceAccordion from '../components/ServiceAccordion';
+
 import MoonMenuIcon from '../components/MoonMenuIcon';
 import Footer from '../components/Footer';
 
@@ -110,7 +110,7 @@ const LandingPage: React.FC = () => {
                         </div>
 
                         {/* Desktop CTA */}
-                        <div className="md:flex items-center flex-shrink-0 min-w-fit ml-8 hidden">
+                        <div className="flex max-md:hidden items-center flex-shrink-0 min-w-fit ml-8">
                             <button
                                 onClick={() => navigate('/offers')}
                                 className="group flex items-center gap-4 rounded-full bg-[#A5F3FC] pl-8 pr-2 py-2 text-[#0F172A] transition-all hover:bg-white hover:scale-105 shadow-[0_0_30px_rgba(165,243,252,0.3)]"
