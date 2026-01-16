@@ -99,6 +99,8 @@ export const createAppointment = mutation({
         date: v.string(),
         time: v.string(),
         clientMessage: v.optional(v.string()),
+        status: v.optional(v.string()), // Added status
+        adminNotes: v.optional(v.string()), // Added adminNotes
     },
     handler: async (ctx, args) => {
         // 1. Check if client exists (by phone)
@@ -127,8 +129,9 @@ export const createAppointment = mutation({
             service_ids: args.serviceIds,
             date: args.date,
             time: args.time,
-            status: "pending",
+            status: args.status || "pending", // Default to pending
             client_message: args.clientMessage,
+            admin_notes: args.adminNotes,
         });
     },
 });

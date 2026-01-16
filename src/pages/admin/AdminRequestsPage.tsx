@@ -8,7 +8,7 @@ const AdminRequestsPage: React.FC = () => {
     const pendingAppointments = useQuery(api.appointments.getPending);
     const updateStatus = useMutation(api.appointments.updateStatus);
     const confirmAppointment = useMutation(api.appointments.confirmAppointment);
-    const allServices = useQuery(api.services.getAll);
+    const allServices = useQuery(api.services.getAllServices);
 
     const [phoneMenuId, setPhoneMenuId] = useState<string | null>(null);
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
