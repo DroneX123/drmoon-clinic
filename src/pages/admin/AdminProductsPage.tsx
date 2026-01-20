@@ -12,6 +12,7 @@ const AdminProductsPage: React.FC = () => {
     const createProduct = useMutation(api.products.createProduct);
     const updateProduct = useMutation(api.products.updateProduct);
     const deleteProduct = useMutation(api.products.deleteProduct);
+    const createExpense = useMutation(api.expenses.createExpense);
 
     // State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,13 +58,35 @@ const AdminProductsPage: React.FC = () => {
                 return;
             }
 
+            const newStock = Number(formData.stock_quantity);
+            const buyPrice = Number(formData.buy_price);
+
             const productData = {
                 name: formData.name,
-                stock_quantity: Number(formData.stock_quantity),
-                buy_price: Number(formData.buy_price),
+                stock_quantity: newStock,
+                buy_price: buyPrice,
                 selling_price: formData.selling_price ? Number(formData.selling_price) : undefined,
                 supplier_id: formData.supplier_id as any,
             };
+
+            // AUTOMATIC EXPENSE LOGIC
+            // Always create expense if stock is added
+            let quantityAdded = 0;
+            if (editingProduct) {
+                quantityAdded = newStock - editingProduct.stock_quantity;
+            } else {
+                quantityAdded = newStock;
+            }
+
+            if (quantityAdded > 0) {
+                const expenseAmount = quantityAdded * buyPrice;
+                await createExpense({
+                    title: `Achat Stock: ${formData.name}`,
+                    amount: expenseAmount,
+                    date: new Date().toISOString().split('T')[0],
+                    category: "Stock"
+                });
+            }
 
             if (editingProduct) {
                 await updateProduct({
@@ -213,8 +236,8 @@ const AdminProductsPage: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="col-span-2 md:col-span-1">
                                     <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Prix Achat (DA)</label>
                                     <div className="relative">
                                         <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-sm">DA</span>
@@ -227,19 +250,7 @@ const AdminProductsPage: React.FC = () => {
                                         />
                                     </div>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Prix Vente (DA)</label>
-                                    <div className="relative">
-                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gold text-sm">DA</span>
-                                        <input
-                                            type="number"
-                                            value={formData.selling_price}
-                                            onChange={(e) => setFormData({ ...formData, selling_price: e.target.value })}
-                                            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:border-gold"
-                                            placeholder="Optionnel"
-                                        />
-                                    </div>
-                                </div>
+                                {/* Selling Price Removed as per request */}
                             </div>
 
                             <button
