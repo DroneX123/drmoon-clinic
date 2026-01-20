@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ChevronRight, Check, ChevronDown, Calendar, AlertCircle, Sparkles } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, ChevronRight, Check, AlertCircle } from 'lucide-react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
@@ -10,8 +10,8 @@ import { groupServicesByCategory, formatDateForConvex } from '../utils/convexHel
 
 // Assets
 import bgDefault from '../assets/luxury_hero.png';
-import bgVisage from '../assets/bg_visage.png';
-import bgCorps from '../assets/bg_corps.png';
+import bgVisage from '../assets/visage_blonde.png';
+import bgCorps from '../assets/body_fit.png';
 import bgPeau from '../assets/bg_peau.png';
 
 const BookingPage: React.FC = () => {
@@ -22,26 +22,31 @@ const BookingPage: React.FC = () => {
     const createAppointment = useMutation(api.appointments.createAppointment);
 
     // --- WIZARD STATE ---
-    // Start directly at Step 1 (Services)
     const [step, setStep] = useState(1);
+    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [selectedTime, setSelectedTime] = useState<string | null>(null);
+    const [activeTabId, setActiveTabId] = useState<string>('visage');
+    const [selectedTreatments, setSelectedTreatments] = useState<string[]>([]);
+
+    // Form Data
+    const [formData, setFormData] = useState({
+        firstName: '',
+        lastName: '',
+        phone: '+213',
+        email: '',
+        instagram: '',
+        description: '' // Used for client message
+    });
 
     // --- DATA STATE ---
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-    const [selectedTreatments, setSelectedTreatments] = useState<string[]>([]);
-    const [formData, setFormData] = useState({
-        firstName: '', lastName: '', phone: '+213', email: '', instagram: '', description: ''
-    });
 
-    // --- UI STATE ---
+    // UI States
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [errorMessage, setErrorMessage] = useState('');
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [instagramError, setInstagramError] = useState('');
-    const [isPhoneValid, setIsPhoneValid] = useState(false);
-    const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
-
-    // Dynamic Background State
     const [currentBg, setCurrentBg] = useState(bgDefault);
+    const [searchParams] = useSearchParams();
 
     // Helpers
     const RITUALS = useMemo(() => groupServicesByCategory(services), [services]);
@@ -49,49 +54,55 @@ const BookingPage: React.FC = () => {
         let total = 0;
         selectedTreatments.forEach(name => {
             const svc = services.find(s => s.name === name);
-            if (svc && !svc.price.toLowerCase().includes('offert')) {
-                const val = parseInt(svc.price.replace(/\D/g, ''), 10);
-                if (!isNaN(val)) total += val;
+            if (svc) {
+                const priceVal = (svc as any).price;
+                if (typeof priceVal === 'number') {
+                    total += priceVal;
+                } else if (typeof priceVal === 'string' && !priceVal.toLowerCase().includes('offert')) {
+                    const val = parseInt(priceVal.replace(/\D/g, ''), 10);
+                    if (!isNaN(val)) total += val;
+                }
             }
         });
         return total;
     }, [selectedTreatments, services]);
 
-    // --- DYNAMIC BACKGROUND LOGIC ---
+    // Initialize Active Tab from URL params or default
     useEffect(() => {
-        // Change background based on Expanded Category OR Selection (Priority to expanded for browsing)
-        if (expandedCategory) {
-            const catTitle = RITUALS.find(r => r.id === expandedCategory)?.title.toLowerCase() || '';
-            if (catTitle.includes('visage')) setCurrentBg(bgVisage);
-            else if (catTitle.includes('corps')) setCurrentBg(bgCorps);
-            else if (catTitle.includes('peau') || catTitle.includes('skin')) setCurrentBg(bgPeau);
-            else setCurrentBg(bgDefault);
-        } else if (selectedTreatments.length > 0) {
-            // Fallback to the category of the last selected treatment
-            const lastTreatment = selectedTreatments[selectedTreatments.length - 1];
-            let foundCat = '';
-            for (const r of RITUALS) {
-                if (r.treatments.some(t => t.name === lastTreatment)) {
-                    foundCat = r.title.toLowerCase();
-                    break;
-                }
+        if (RITUALS.length > 0 && !activeTabId) {
+            const categoryParam = searchParams.get('category');
+            if (categoryParam) {
+                // Try to match exact ID or case-insensitive
+                const match = RITUALS.find(r => r.id.toLowerCase() === categoryParam.toLowerCase());
+                if (match) setActiveTabId(match.id);
+                else setActiveTabId(RITUALS[0].id);
+            } else {
+                setActiveTabId(RITUALS[0].id);
             }
-            if (foundCat.includes('visage')) setCurrentBg(bgVisage);
-            else if (foundCat.includes('corps')) setCurrentBg(bgCorps);
-            else if (foundCat.includes('peau') || foundCat.includes('skin')) setCurrentBg(bgPeau);
-            else setCurrentBg(bgDefault);
+        }
+    }, [RITUALS, activeTabId, searchParams]);
+
+    // --- DYNAMIC BACKGROUND & TAB LOGIC ---
+    useEffect(() => {
+        if (activeTabId && RITUALS.length > 0) {
+            const currentCat = RITUALS.find(r => r.id === activeTabId);
+            if (currentCat) {
+                const title = currentCat.id.toLowerCase(); // Use ID for safer matching
+                if (title.includes('visage')) setCurrentBg(bgVisage);
+                else if (title.includes('corps')) setCurrentBg(bgCorps);
+                else if (title.includes('peau') || title.includes('skin')) setCurrentBg(bgPeau);
+                else setCurrentBg(bgDefault);
+            }
         } else {
             setCurrentBg(bgDefault);
         }
-    }, [expandedCategory, selectedTreatments, RITUALS]);
+    }, [activeTabId, RITUALS]);
 
 
     // Validation & Handlers
     const validateInstagram = (value: string) => {
-        if (!value.trim()) return false;
-        const atPattern = /^@[a-zA-Z0-9._]+$/;
-        const urlPattern = /^https?:\/\/(www\.)?instagram\.com\/[a-zA-Z0-9._]+/;
-        return atPattern.test(value) || urlPattern.test(value);
+        // Less strict: just check if it's not empty and has length
+        return value.trim().length > 1;
     };
 
     const handleInstagramChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,7 +125,7 @@ const BookingPage: React.FC = () => {
                 .map(name => services.find(s => s.name === name)?._id)
                 .filter(Boolean) as Id<"services">[];
 
-            if (!selectedDate) throw new Error("Veuillez sélectionner une date.");
+            if (!selectedDate || !selectedTime) throw new Error("Veuillez sélectionner une date et une heure.");
 
             await createAppointment({
                 firstName: formData.firstName,
@@ -124,7 +135,7 @@ const BookingPage: React.FC = () => {
                 instagram: formData.instagram,
                 serviceIds,
                 date: formatDateForConvex(selectedDate),
-                time: "09:00",
+                time: selectedTime || "09:00",
                 clientMessage: formData.description || undefined,
             });
             setStep(4);
@@ -141,8 +152,8 @@ const BookingPage: React.FC = () => {
             setErrorMessage("Veuillez choisir au moins un soin.");
             return;
         }
-        if (step === 2 && !selectedDate) {
-            setErrorMessage("Veuillez choisir une date.");
+        if (step === 2 && (!selectedDate || !selectedTime)) {
+            setErrorMessage("Veuillez choisir une date et une heure.");
             return;
         }
         if (step === 3) {
@@ -155,69 +166,72 @@ const BookingPage: React.FC = () => {
     // --- SUB-COMPONENTS ---
 
     const Stepper = () => (
-        <div className="flex items-center gap-2 mb-8 px-2 relative z-10">
+        <div className="flex items-center gap-2 mb-6 px-2 relative z-10 justify-center">
             {[1, 2, 3].map((s) => {
                 const isActive = step >= s;
                 return (
                     <div key={s} className="flex items-center">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border transition-all duration-300
-                            ${isActive ? 'bg-gold border-gold text-slate-900' : 'bg-transparent border-white/20 text-white/30'}
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border transition-all duration-300
+                            ${isActive ? 'bg-gold border-gold text-slate-900 shadow-[0_0_10px_rgba(212,175,55,0.4)]' : 'bg-transparent border-white/20 text-white/30'}
                         `}>
                             {s}
                         </div>
-                        {s < 3 && <div className={`w-8 h-px mx-2 transition-colors ${step > s ? 'bg-gold' : 'bg-white/10'}`} />}
+                        {s < 3 && <div className={`w-6 h-px mx-1 transition-colors ${step > s ? 'bg-gold' : 'bg-white/10'}`} />}
                     </div>
                 )
             })}
-            <div className="ml-auto flex flex-col items-end">
-                <span className="text-[10px] uppercase tracking-widest text-gold font-bold">
-                    {step === 1 ? 'Soins' : step === 2 ? 'Date' : 'Infos'}
-                </span>
-                <span className="text-[10px] text-white/30">Étape {step} / 3</span>
-            </div>
         </div>
     );
 
     const Step1_Services = () => (
-        <div className="flex flex-col h-full animate-in fade-in slide-in-from-left-4 duration-500">
-            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2 -mr-2">
-                {RITUALS.map((ritual) => (
-                    <div key={ritual.id} className="border border-white/5 rounded-xl bg-slate-900/40 backdrop-blur-sm overflow-hidden transition-all duration-300 hover:bg-slate-900/60">
-                        <button
-                            onClick={() => setExpandedCategory(expandedCategory === ritual.id ? null : ritual.id)}
-                            className="w-full flex items-center justify-between p-5 hover:bg-white/5 transition-colors group"
-                        >
-                            <span className="font-serif text-lg text-white/90 group-hover:text-gold transition-colors">{ritual.title}</span>
-                            <ChevronDown className={`h-4 w-4 text-gold/50 transition-transform duration-300 ${expandedCategory === ritual.id ? 'text-gold rotate-180' : ''}`} />
-                        </button>
-                        <div className={`transition-all duration-300 overflow-hidden ${expandedCategory === ritual.id ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                            <div className="p-5 pt-0 space-y-2">
-                                {ritual.treatments.map((t, idx) => {
-                                    const isSelected = selectedTreatments.includes(t.name);
-                                    return (
-                                        <div
-                                            key={idx}
-                                            onClick={(e) => { e.stopPropagation(); setSelectedTreatments(prev => prev.includes(t.name) ? prev.filter(x => x !== t.name) : [...prev, t.name]) }}
-                                            className={`flex justify-between items-center p-3 rounded-lg cursor-pointer border transition-all duration-200
-                                                ${isSelected ? 'bg-gold border-gold text-slate-900 shadow-md translate-x-1' : 'bg-white/5 border-transparent text-white/70 hover:bg-white/10'}
-                                            `}
-                                        >
-                                            <div className="flex-1">
-                                                <p className={`font-bold text-sm leading-tight ${isSelected ? 'text-slate-900' : 'text-white'}`}>{t.name}</p>
-                                                <p className={`text-[10px] mt-0.5 ${isSelected ? 'text-slate-800' : 'text-gold'}`}>{t.price}</p>
-                                            </div>
-                                            {isSelected && <Check className="h-4 w-4 text-slate-900" />}
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        </div>
-                    </div>
+        <div className="flex flex-col h-full animate-in fade-in zoom-in-95 duration-500">
+
+            {/* TABS HEADER */}
+            <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-none">
+                {RITUALS.map(cat => (
+                    <button
+                        key={cat.id}
+                        onClick={() => setActiveTabId(cat.id)}
+                        className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all duration-300 border
+                            ${activeTabId === cat.id
+                                ? 'bg-gold border-gold text-slate-900 shadow-lg shadow-gold/20'
+                                : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10 hover:text-white'}
+                        `}
+                    >
+                        {cat.title}
+                    </button>
                 ))}
             </div>
-            <div className="mt-6 pt-4 border-t border-white/10 flex justify-between items-center">
-                <span className="text-white/50 text-xs uppercase tracking-wider">Total</span>
-                <span className="text-gold font-serif text-2xl">{totalPrice.toLocaleString()} DA</span>
+
+            {/* SERVICE LIST (For Active Tab) */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-2 -mr-2">
+                {RITUALS.find(r => r.id === activeTabId)?.treatments.map((t, idx) => {
+                    const isSelected = selectedTreatments.includes(t.name);
+                    return (
+                        <div
+                            key={idx}
+                            onClick={(e) => { e.stopPropagation(); setSelectedTreatments(prev => prev.includes(t.name) ? prev.filter(x => x !== t.name) : [...prev, t.name]) }}
+                            className={`flex justify-between items-center p-4 rounded-xl cursor-cursor-pointer border transition-all duration-200
+                                 ${isSelected
+                                    ? 'bg-gradient-to-r from-gold/20 to-gold/5 border-gold/50 text-white shadow-[0_0_15px_rgba(212,175,55,0.1)]'
+                                    : 'bg-white/5 border-transparent text-white/60 hover:bg-white/10'}
+                             `}
+                        >
+                            <div className="flex-1">
+                                <p className={`font-serif text-sm leading-tight ${isSelected ? 'text-gold' : 'text-white'}`}>{t.name}</p>
+                                <p className={`text-[10px] mt-1 font-mono tracking-widest ${isSelected ? 'text-white/80' : 'text-white/30'}`}>{t.price}</p>
+                            </div>
+                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${isSelected ? 'bg-gold border-gold' : 'border-white/20'}`}>
+                                {isSelected && <Check className="w-3 h-3 text-slate-900" />}
+                            </div>
+                        </div>
+                    )
+                })}
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-white/10 flex justify-between items-center">
+                <span className="text-white/40 text-[10px] uppercase tracking-wider">Sélection</span>
+                <span className="text-gold font-serif text-xl">{totalPrice.toLocaleString()} DA</span>
             </div>
         </div>
     );
@@ -229,11 +243,11 @@ const BookingPage: React.FC = () => {
         const today = new Date(); today.setHours(0, 0, 0, 0);
 
         return (
-            <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300">
-                <div className="bg-slate-900/40 border border-white/10 rounded-2xl p-4 md:p-6 backdrop-blur-sm shadow-inner mb-4">
+            <div className="flex flex-col h-full animate-in fade-in zoom-in-95 duration-300">
+                <div className="bg-slate-900/40 border border-white/10 rounded-2xl p-4 backdrop-blur-sm shadow-inner mb-4">
                     <div className="flex justify-between items-center mb-6">
                         <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="p-2 text-white/50 hover:text-white rounded-full hover:bg-white/5"><ArrowLeft size={18} /></button>
-                        <span className="font-serif text-lg md:text-xl text-gold">{monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}</span>
+                        <span className="font-serif text-lg text-gold">{monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}</span>
                         <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} className="p-2 text-white/50 hover:text-white rounded-full hover:bg-white/5"><ArrowLeft size={18} className="rotate-180" /></button>
                     </div>
 
@@ -252,8 +266,8 @@ const BookingPage: React.FC = () => {
                                 <button
                                     key={d}
                                     disabled={isPast}
-                                    onClick={() => setSelectedDate(date)}
-                                    className={`aspect-square flex items-center justify-center rounded-full text-xs md:text-sm font-medium transition-all
+                                    onClick={() => { setSelectedDate(date); setSelectedTime(null); }}
+                                    className={`aspect-square flex items-center justify-center rounded-full text-xs font-medium transition-all
                                         ${isSelected ? 'bg-gold text-slate-900 shadow-lg shadow-gold/40 scale-110' :
                                             isPast ? 'text-white/5 cursor-not-allowed' : 'bg-white/5 text-white hover:bg-white/10'}
                                     `}
@@ -265,17 +279,37 @@ const BookingPage: React.FC = () => {
                     </div>
                 </div>
 
+                {/* Time Selection */}
                 {selectedDate && (
-                    <div className="mx-auto px-6 py-2 rounded-full bg-gold/10 border border-gold/30 text-gold font-serif animate-in fade-in zoom-in">
-                        {selectedDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <h3 className="text-white/40 text-[10px] uppercase font-bold mb-3 pl-1">Horaires Disponibles</h3>
+                        <div className="grid grid-cols-4 gap-2 pb-2">
+                            {['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'].map(time => (
+                                <button
+                                    key={time}
+                                    onClick={() => setSelectedTime(time)}
+                                    className={`py-2 rounded-lg text-xs font-bold border transition-all
+                                        ${selectedTime === time
+                                            ? 'bg-gold border-gold text-slate-900 shadow-md'
+                                            : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:border-white/20 hover:text-white'}
+                                    `}
+                                >
+                                    {time}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="mx-auto mt-4 px-6 py-2 rounded-full bg-gold/10 border border-gold/30 text-gold font-serif text-sm text-center">
+                            {selectedDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                            {selectedTime && <span className="ml-1">à {selectedTime}</span>}
+                        </div>
                     </div>
                 )}
             </div>
         );
-    }
+    };
 
     const Step3_Details = () => (
-        <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300">
+        <div className="flex flex-col h-full animate-in fade-in zoom-in-95 duration-300">
             <div className="flex-1 overflow-y-auto custom-scrollbar p-1 space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
@@ -283,7 +317,7 @@ const BookingPage: React.FC = () => {
                         <input
                             value={formData.firstName} onChange={e => setFormData({ ...formData, firstName: e.target.value })}
                             className="w-full bg-slate-900/60 border border-white/10 rounded-xl p-3 text-white focus:border-gold focus:outline-none transition-all placeholder:text-white/20 text-sm"
-                            placeholder="Prénom"
+                            placeholder="Votre prénom"
                         />
                     </div>
                     <div className="space-y-1">
@@ -291,14 +325,14 @@ const BookingPage: React.FC = () => {
                         <input
                             value={formData.lastName} onChange={e => setFormData({ ...formData, lastName: e.target.value })}
                             className="w-full bg-slate-900/60 border border-white/10 rounded-xl p-3 text-white focus:border-gold focus:outline-none transition-all placeholder:text-white/20 text-sm"
-                            placeholder="Nom"
+                            placeholder="Votre nom"
                         />
                     </div>
                 </div>
 
                 <div className="space-y-1">
                     <label className="text-[10px] text-white/40 uppercase font-bold pl-1">Téléphone</label>
-                    <PhoneInput value={formData.phone} onChange={(v, isValid) => { setFormData({ ...formData, phone: v }); setIsPhoneValid(isValid); }} />
+                    <PhoneInput value={formData.phone} onChange={(v, _) => { setFormData({ ...formData, phone: v }); }} />
                 </div>
 
                 <div className="space-y-1">
@@ -307,17 +341,15 @@ const BookingPage: React.FC = () => {
                         <input
                             value={formData.instagram} onChange={handleInstagramChange}
                             className={`w-full bg-slate-900/60 border rounded-xl p-3 pl-10 text-white focus:outline-none transition-all placeholder:text-white/20 text-sm ${instagramError ? 'border-red-500/50' : 'border-white/10 focus:border-gold'}`}
-                            placeholder="pseudo"
+                            placeholder="votre_pseudo"
                         />
                         <span className="absolute left-3 top-3 text-white/40">@</span>
                     </div>
                 </div>
 
-                <div className="bg-slate-900/40 rounded-xl p-4 mt-6 border border-white/5">
-                    <div className="flex justify-between text-sm text-white/90">
-                        <span>Total (Payable sur place)</span>
-                        <span className="font-bold text-gold">{totalPrice.toLocaleString()} DA</span>
-                    </div>
+                <div className="bg-slate-900/40 rounded-xl p-4 mt-6 border border-white/5 flex justify-between items-center">
+                    <span className="text-white/60 text-xs uppercase tracking-wider">Total à régler</span>
+                    <span className="font-serif text-xl text-gold">{totalPrice.toLocaleString()} DA</span>
                 </div>
             </div>
         </div>
@@ -334,7 +366,7 @@ const BookingPage: React.FC = () => {
             </p>
             <button
                 onClick={() => navigate('/')}
-                className="text-gold border-b border-gold/30 hover:border-gold pb-1 text-xs uppercase tracking-widest font-bold hover:text-white transition-colors"
+                className="px-8 py-3 bg-white/5 hover:bg-gold text-white hover:text-slate-900 rounded-full transition-all text-xs uppercase tracking-widest font-bold border border-white/10"
             >
                 Retour à l'accueil
             </button>
@@ -343,39 +375,56 @@ const BookingPage: React.FC = () => {
 
     // --- MAIN RENDER ---
     return (
-        <div className="fixed inset-0 bg-slate-950 font-sans selection:bg-gold/30 text-white overflow-hidden flex">
+        <div className="fixed inset-0 bg-slate-950 font-sans selection:bg-gold/30 text-white overflow-hidden flex items-center justify-center">
 
-            {/* 1. LAYOUT: LEFT CARD (Fixed Width) */}
-            <div className="w-full md:w-[480px] h-full bg-slate-950/95 backdrop-blur-xl border-r border-white/10 flex flex-col relative z-20 shadow-2xl">
-
-                {/* Header */}
-                <div className="p-6 md:p-8 flex justify-between items-center bg-slate-950">
-                    <div className="flex items-center gap-3">
-                        <div onClick={() => navigate('/')} className="cursor-pointer hover:scale-105 transition-transform">
-                            <MoonMenuIcon className="h-8 w-8 text-gold" />
-                        </div>
-                        <div>
-                            <h1 className="font-serif text-xl text-white leading-none">Dr. Moon</h1>
-                            <p className="text-[10px] text-white/40 uppercase tracking-[0.2em]">Clinic</p>
-                        </div>
+            {/* BACKGROUND: Full Screen with Overlay */}
+            <div className="absolute inset-0 z-0 bg-black">
+                {[bgDefault, bgVisage, bgCorps, bgPeau].map((imgSrc) => (
+                    <div
+                        key={imgSrc}
+                        className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${currentBg === imgSrc ? 'opacity-100' : 'opacity-0'}`}
+                    >
+                        <img
+                            src={imgSrc}
+                            alt="Atmosphere"
+                            className="w-full h-full object-cover object-left scale-105"
+                        />
+                        {/* THE "FADE" OVERLAY - Conditional darkness */}
+                        <div className={`absolute inset-0 backdrop-blur-[2px] transition-all duration-1000 ${imgSrc === bgPeau ? 'bg-slate-950/70' : 'bg-slate-950/40'
+                            }`} />
+                        <div className={`absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent ${imgSrc === bgPeau ? 'to-slate-950/50' : 'to-slate-950/20'
+                            }`} />
                     </div>
-                    {step > 1 && step < 4 && (
-                        <button onClick={() => setStep(prev => prev - 1)} className="p-2 rounded-full hover:bg-white/5 text-white/40 hover:text-white transition-colors">
-                            <ArrowLeft size={18} />
-                        </button>
-                    )}
-                </div>
+                ))}
+            </div>
 
-                {/* Wizard Content */}
-                <div className="flex-1 flex flex-col overflow-hidden relative">
-                    {/* Stepper only for active steps */}
+            {/* HEADER (Floating) */}
+            <div className="absolute top-0 left-0 w-full p-6 z-50 flex justify-between items-center">
+                <div onClick={() => navigate('/')} className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-3">
+                    <MoonMenuIcon className="h-8 w-8 text-gold drop-shadow-md" />
+                </div>
+                {step > 1 && step < 4 && (
+                    <button onClick={() => setStep(prev => prev - 1)} className="p-2 rounded-full bg-slate-900/50 hover:bg-white/10 text-white border border-white/10 transition-colors backdrop-blur">
+                        <ArrowLeft size={20} />
+                    </button>
+                )}
+            </div>
+
+            {/* CENTRAL CARD */}
+            <div className="relative z-20 w-full max-w-md h-[85vh] max-h-[800px] flex flex-col">
+                <div className="flex-1 bg-slate-950/80 backdrop-blur-xl border border-white/10 rounded-[2.5rem] shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col relative animate-in fade-in zoom-in-95 duration-500">
+
+                    {/* Card Header (Steps) */}
                     {step < 4 && (
-                        <div className="px-6 md:px-8 mb-4">
+                        <div className="pt-8 pb-4 border-b border-white/5">
+                            <h2 className="text-center font-serif text-2xl text-white mb-4">
+                                {step === 1 ? 'Vos Soins' : step === 2 ? 'Votre Date' : 'Vos Infos'}
+                            </h2>
                             <Stepper />
                         </div>
                     )}
 
-                    {/* Step Components */}
+                    {/* Scrollable Content */}
                     <div className="flex-1 overflow-hidden px-6 md:px-8 pb-4 relative">
                         {step === 1 && <Step1_Services />}
                         {step === 2 && <Step2_Date />}
@@ -385,16 +434,16 @@ const BookingPage: React.FC = () => {
 
                     {/* Footer Actions */}
                     {step < 4 && (
-                        <div className="p-6 md:p-8 pt-4 border-t border-white/5 bg-slate-950">
+                        <div className="p-6 md:p-8 pt-4 border-t border-white/5 bg-slate-950/50">
                             {errorMessage && (
-                                <div className="mb-4 text-center text-red-400 text-xs flex items-center justify-center gap-1 animate-in fade-in">
+                                <div className="mb-4 text-center text-red-300 text-xs flex items-center justify-center gap-1 animate-in fade-in">
                                     <AlertCircle size={12} /> {errorMessage}
                                 </div>
                             )}
                             <button
                                 onClick={handleNext}
                                 disabled={isSubmitting}
-                                className="w-full py-4 bg-gold hover:bg-white text-slate-900 font-bold rounded-xl transition-all shadow-lg shadow-gold/10 hover:shadow-gold/20 flex items-center justify-center gap-2 uppercase tracking-widest text-sm"
+                                className="w-full py-4 bg-gradient-to-r from-gold to-amber-400 hover:from-white hover:to-white text-slate-900 font-bold rounded-xl transition-all shadow-[0_4px_20px_rgba(212,175,55,0.3)] hover:shadow-[0_4px_30px_rgba(255,255,255,0.5)] flex items-center justify-center gap-2 uppercase tracking-widest text-sm transform hover:-translate-y-1"
                             >
                                 {isSubmitting ? <span className="animate-pulse">Patientez...</span> : (step === 3 ? 'Confirmer' : 'Suivant')}
                                 {!isSubmitting && step !== 3 && <ChevronRight size={16} />}
@@ -402,32 +451,6 @@ const BookingPage: React.FC = () => {
                         </div>
                     )}
                 </div>
-            </div>
-
-            {/* 2. LAYOUT: RIGHT BACKGROUND (Flexible) */}
-            <div className="hidden md:block flex-1 h-full relative overflow-hidden bg-black">
-                {/* Dynamic Image Layer with Crossfade */}
-                <div key={currentBg} className="absolute inset-0 animate-in fade-in duration-1000">
-                    <img
-                        src={currentBg}
-                        alt="Atmosphere"
-                        className="w-full h-full object-cover object-center scale-105 opacity-80"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-l from-transparent via-slate-950/20 to-slate-950" />
-                </div>
-
-                {/* Branding/Quote Overlay */}
-                <div className="absolute bottom-12 right-12 text-right max-w-md pointer-events-none">
-                    <p className="text-white/90 font-serif text-4xl leading-tight drop-shadow-2xl">
-                        "Révélez votre lumière."
-                    </p>
-                    <div className="h-1 w-20 bg-gold ml-auto mt-6" />
-                </div>
-            </div>
-
-            {/* Mobile Background (Absolute behind card on mobile) */}
-            <div className="md:hidden absolute inset-0 -z-10">
-                <img src={currentBg} className="w-full h-full object-cover opacity-60" />
             </div>
 
         </div>

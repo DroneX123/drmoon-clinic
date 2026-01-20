@@ -198,7 +198,7 @@ const OffersPage: React.FC = () => {
 
                             {/* Modal Action */}
                             <button
-                                onClick={() => navigate('/booking')}
+                                onClick={() => navigate(`/booking?category=${selectedRitual.id}`)}
                                 className="mt-8 w-full bg-white/5 hover:bg-gold hover:text-black text-gold border border-gold/20 py-4 text-xs font-bold uppercase tracking-widest transition-all duration-300"
                             >
                                 Réserver ce Rituel

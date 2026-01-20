@@ -6,7 +6,7 @@ export const groupServicesByCategory = (services: any[]) => {
         id: cat.toLowerCase(),
         title: cat,
         treatments: services
-            .filter((s) => s.category === cat)
+            .filter((s) => s.category.toLowerCase() === cat.toLowerCase())
             .map((s) => ({
                 name: s.name,
                 price: s.price === 0 ? 'Offert' : `${s.price.toLocaleString('fr-FR')} DA`,
