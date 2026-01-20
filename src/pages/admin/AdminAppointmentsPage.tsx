@@ -898,7 +898,7 @@ const AdminAppointmentsPage: React.FC = () => {
                             ) : (
                                 <button
                                     onClick={handleFinishAppointment}
-                                    className="px-8 py-2.5 rounded-xl bg-grad-gold text-white font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-gold/20 flex items-center gap-2"
+                                    className="px-8 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 flex items-center gap-2"
                                 >
                                     <Check className="w-5 h-5" />
                                     Terminer & Encaisser
