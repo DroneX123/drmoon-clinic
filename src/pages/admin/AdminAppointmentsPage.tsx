@@ -37,6 +37,7 @@ const AdminAppointmentsPage: React.FC = () => {
     const [receiptCurrentServices, setReceiptCurrentServices] = useState<any[]>([]); // New: To edit current appointment
     const [receiptNotes] = useState('');
     const [isNextApptPickerOpen, setIsNextApptPickerOpen] = useState(false);
+    const [receiptStep, setReceiptStep] = useState(1); // Wizard Step State
 
 
 
@@ -58,6 +59,7 @@ const AdminAppointmentsPage: React.FC = () => {
         setReceiptProducts([]);
         setReceiptFinalPrice(appt.services.reduce((acc: number, s: any) => acc + parsePrice(s.price), 0)); // Initial price from current services
         setReceiptNextDate(null);
+        setReceiptStep(1); // Reset to Step 1
         setReceiptNextTime('10:00');
         setReceiptNextServices([]); // Default empty for next appt (admin chooses)
         setReceiptCurrentServices(appt.services); // Init with current services
@@ -516,132 +518,265 @@ const AdminAppointmentsPage: React.FC = () => {
             {/* RECEIPT / FINISH MODAL */}
             {isReceiptModalOpen && viewModalAppt && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full p-0 flex flex-col max-h-[90vh] overflow-hidden relative">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full p-0 flex flex-col max-h-[90vh] overflow-hidden relative transition-all">
 
-                        {/* Header */}
-                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white relative">
-                            <div>
-                                <h2 className="font-serif text-2xl text-slate-900 mb-1">Consultation Personnalisée</h2>
-                                <p className="text-slate-500 text-sm">
-                                    Patient: <span className="font-bold text-slate-900">{viewModalAppt.client?.first_name} {viewModalAppt.client?.last_name}</span>
-                                </p>
+                        {/* Header with Stepper */}
+                        <div className="p-6 border-b border-slate-100 bg-white relative">
+                            <div className="flex justify-between items-start mb-6">
+                                <div>
+                                    <h2 className="font-serif text-2xl text-slate-900 mb-1">Consultation</h2>
+                                    <p className="text-slate-500 text-sm">
+                                        Patient: <span className="font-bold text-slate-900">{viewModalAppt.client?.first_name} {viewModalAppt.client?.last_name}</span>
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setIsReceiptModalOpen(false)}
+                                    className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-900 transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
                             </div>
-                            <div className="text-right pr-6 md:pr-12">
-                                <p className="text-xs text-slate-400 uppercase tracking-widest mb-1">Total à Payer</p>
-                                <p className="font-serif text-3xl text-slate-900 font-bold">{receiptFinalPrice.toLocaleString()} <span className="text-gold text-lg">DA</span></p>
+
+                            {/* STEPS INDICATOR */}
+                            <div className="flex items-center justify-between px-4 sm:px-12 relative">
+                                <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-100 -z-10 transform -translate-y-1/2 mx-16 sm:mx-20" />
+
+                                {[
+                                    { id: 1, label: "Services", icon: Check },
+                                    { id: 2, label: "Produits", icon: Package },
+                                    { id: 3, label: "Prochain RDV", icon: CalendarIcon },
+                                    { id: 4, label: "Paiement", icon: DollarSign }
+                                ].map((step) => {
+                                    const isActive = receiptStep >= step.id;
+                                    const isCurrent = receiptStep === step.id;
+                                    const Icon = step.icon;
+
+                                    return (
+                                        <div key={step.id} className="flex flex-col items-center gap-2 bg-white px-2">
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 border-2
+                                                ${isActive ? 'bg-slate-900 border-slate-900 text-gold' : 'bg-white border-slate-200 text-slate-300'}
+                                                ${isCurrent ? 'ring-4 ring-gold/20 scale-110' : ''}
+                                            `}>
+                                                <Icon className="w-5 h-5" />
+                                            </div>
+                                            <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors
+                                                ${isActive ? 'text-slate-900' : 'text-slate-300'}
+                                            `}>
+                                                {step.label}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                            <button
-                                onClick={() => setIsReceiptModalOpen(false)}
-                                className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-900 transition-colors"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
                         </div>
 
-                        {/* Main Content - Two Columns */}
-                        <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+                        {/* Main Content Area */}
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-slate-50 relative">
 
-                            {/* LEFT: SERVICES CATALOG */}
-                            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 border-r border-slate-100 bg-slate-50">
-                                <h3 className="text-xs font-bold uppercase text-gold mb-6 tracking-widest flex items-center gap-2">
-                                    <Check className="w-4 h-4" /> Sélection des Services
-                                </h3>
+                            {/* STEP 1: SERVICES */}
+                            {receiptStep === 1 && (
+                                <div className="animate-in slide-in-from-right-4 fade-in duration-300 space-y-6">
+                                    <div className="text-center mb-8">
+                                        <h3 className="text-lg font-bold text-slate-900">Services Effectués</h3>
+                                        <p className="text-slate-500 text-sm">Cochez les soins réalisés aujourd'hui.</p>
+                                    </div>
 
-                                <div className="space-y-8">
-                                    {groupedServices.map((group: any) => (
-                                        <div key={group.id}>
-                                            <h4 className="text-slate-400 text-xs font-bold uppercase mb-3 pl-1">{group.title}</h4>
-                                            <div className="space-y-3">
-                                                {group.treatments.map((svc: any) => {
-                                                    const isSelected = receiptCurrentServices.some(s => s._id === svc._id);
-                                                    return (
-                                                        <div
-                                                            key={svc._id}
-                                                            onClick={() => {
-                                                                let newServices;
-                                                                if (isSelected) {
-                                                                    newServices = receiptCurrentServices.filter(s => s._id !== svc._id);
-                                                                } else {
-                                                                    newServices = [...receiptCurrentServices, svc];
-                                                                }
-                                                                setReceiptCurrentServices(newServices);
-
-                                                                // Recalculate Total
-                                                                const servicesTotal = newServices.reduce((acc, s) => acc + parsePrice(s.price), 0);
-                                                                const productsTotal = receiptProducts.reduce((acc, p) => {
-                                                                    const prod = allProducts?.find(ap => ap._id === p.productId);
-                                                                    const price = parsePrice(prod?.selling_price);
-                                                                    return acc + (price * p.quantity);
-                                                                }, 0);
-                                                                setReceiptFinalPrice(servicesTotal + productsTotal);
-                                                            }}
-                                                            className={`p-4 rounded-xl border cursor-pointer transition-all duration-200 group relative overflow-hidden
-                                                                ${isSelected
-                                                                    ? 'bg-slate-900 border-slate-900 shadow-md transform scale-[1.02]'
-                                                                    : 'bg-white border-slate-200 hover:border-gold/50 hover:shadow-md'
-                                                                }`}
-                                                        >
-                                                            <div className="flex justify-between items-start gap-4 relative z-10">
-                                                                <div className="flex items-start gap-3">
-                                                                    <div className={`mt-0.5 w-5 h-5 rounded border flex items-center justify-center transition-colors
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
+                                        {allServices && groupServicesByCategory(allServices).map((group: any) => (
+                                            <div key={group.id} className="col-span-full">
+                                                <h4 className="text-slate-400 text-xs font-bold uppercase mb-3 pl-1">{group.title}</h4>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                    {group.treatments.map((svc: any) => {
+                                                        const isSelected = receiptCurrentServices.some(s => s._id === svc._id);
+                                                        return (
+                                                            <div
+                                                                key={svc._id}
+                                                                onClick={() => {
+                                                                    let newServices;
+                                                                    if (isSelected) {
+                                                                        newServices = receiptCurrentServices.filter(s => s._id !== svc._id);
+                                                                    } else {
+                                                                        newServices = [...receiptCurrentServices, svc];
+                                                                    }
+                                                                    setReceiptCurrentServices(newServices);
+                                                                    // Recalculate Total
+                                                                    const servicesTotal = newServices.reduce((acc, s) => acc + parsePrice(s.price), 0);
+                                                                    const productsTotal = receiptProducts.reduce((acc, p) => {
+                                                                        const prod = allProducts?.find(ap => ap._id === p.productId);
+                                                                        const price = parsePrice(prod?.selling_price);
+                                                                        return acc + (price * p.quantity);
+                                                                    }, 0);
+                                                                    setReceiptFinalPrice(servicesTotal + productsTotal);
+                                                                }}
+                                                                className={`p-4 rounded-xl border cursor-pointer transition-all duration-200 group relative overflow-hidden flex items-center justify-between
+                                                                    ${isSelected
+                                                                        ? 'bg-white border-gold shadow-md ring-1 ring-gold/20'
+                                                                        : 'bg-white border-slate-200 hover:border-slate-300'
+                                                                    }`}
+                                                            >
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors
                                                                         ${isSelected ? 'bg-gold border-gold text-slate-900' : 'border-slate-300 text-transparent'}`}>
                                                                         <Check className="w-3.5 h-3.5 stroke-[3]" />
                                                                     </div>
-                                                                    <div>
-                                                                        <h5 className={`font-bold text-sm mb-1 ${isSelected ? 'text-white' : 'text-slate-900'}`}>{svc.name}</h5>
-                                                                        <p className={`text-xs leading-relaxed max-w-[250px] ${isSelected ? 'text-white/60' : 'text-slate-500'}`}>
-                                                                            {svc.description || "Aucune description."}
-                                                                        </p>
-                                                                    </div>
+                                                                    <span className={`font-bold text-sm ${isSelected ? 'text-slate-900' : 'text-slate-600'}`}>{svc.name}</span>
                                                                 </div>
-                                                                <span className={`font-serif font-bold text-sm ${isSelected ? 'text-gold' : 'text-slate-900'}`}>
+                                                                <span className="font-serif font-bold text-sm text-slate-400">
                                                                     {parsePrice(svc.price).toLocaleString()} DA
                                                                 </span>
                                                             </div>
-                                                        </div>
-                                                    );
-                                                })}
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
-                            {/* RIGHT: PRODUCTS USED */}
-                            <div className="w-full md:w-[400px] bg-white border-l border-slate-100 p-6 overflow-y-auto custom-scrollbar relative">
-                                {/* POPUP PICKER OVERLAY - Light Theme */}
-                                {isNextApptPickerOpen && (
-                                    <div className="absolute inset-0 z-20 bg-white/95 backdrop-blur-md flex flex-col p-4 animate-in fade-in zoom-in-95 duration-200">
-                                        <h3 className="font-bold text-slate-900 mb-4 flex items-center justify-between">
-                                            <span>Choisir Date & Heure</span>
-                                            <button onClick={() => setIsNextApptPickerOpen(false)} className="p-1 hover:bg-slate-100 rounded-full transition-colors">
-                                                <X className="w-5 h-5 text-slate-400 hover:text-slate-900" />
-                                            </button>
-                                        </h3>
+                            {/* STEP 2: PRODUCTS */}
+                            {receiptStep === 2 && (
+                                <div className="animate-in slide-in-from-right-4 fade-in duration-300 space-y-6">
+                                    <div className="text-center mb-8">
+                                        <h3 className="text-lg font-bold text-slate-900">Produits Utilisés</h3>
+                                        <p className="text-slate-500 text-sm">Ajoutez les produits consommés durant la séance (optionnel).</p>
+                                    </div>
 
-                                        <div className="flex-1 overflow-y-auto custom-scrollbar space-y-6">
-                                            <div className="scale-90 origin-top-left -mb-6">
-                                                <AdminCalendar
-                                                    value={receiptNextDate || new Date()}
-                                                    onChange={(d) => setReceiptNextDate(d)}
-                                                />
-                                            </div>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                        {allProducts?.map(product => {
+                                            const current = receiptProducts.find(p => p.productId === product._id);
+                                            const quantity = current?.quantity || 0;
+                                            const isActive = quantity > 0;
 
-                                            <div>
+                                            return (
+                                                <div
+                                                    key={product._id}
+                                                    onClick={() => {
+                                                        if (!isActive) {
+                                                            const updated = [...receiptProducts, { productId: product._id, quantity: 1 }];
+                                                            setReceiptProducts(updated);
+                                                            // Recalc Total
+                                                            const servicesTotal = receiptCurrentServices.reduce((acc, s) => acc + parsePrice(s.price), 0);
+                                                            const productsTotal = updated.reduce((acc, p) => {
+                                                                const prod = allProducts?.find(ap => ap._id === p.productId);
+                                                                const price = parsePrice(prod?.selling_price);
+                                                                return acc + (price * p.quantity);
+                                                            }, 0);
+                                                            setReceiptFinalPrice(servicesTotal + productsTotal);
+                                                        }
+                                                    }}
+                                                    className={`p-4 rounded-xl border transition-all duration-200 flex flex-col gap-3 cursor-pointer group relative overflow-hidden
+                                                        ${isActive
+                                                            ? 'bg-white border-gold shadow-md'
+                                                            : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm'}`}
+                                                >
+                                                    <div className="flex justify-between items-start">
+                                                        <span className={`font-bold text-sm line-clamp-2 ${isActive ? 'text-slate-900' : 'text-slate-600'}`}>
+                                                            {product.name}
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-400 bg-slate-50 px-2 py-1 rounded-md">
+                                                            Stock: {product.stock_quantity}
+                                                        </span>
+                                                    </div>
+
+                                                    {isActive ? (
+                                                        <div className="flex items-center justify-between mt-auto pt-2 animate-in fade-in slide-in-from-bottom-2">
+                                                            <div className="flex items-center gap-2 bg-slate-100 rounded-lg p-1 border border-slate-200" onClick={(e) => e.stopPropagation()}>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        const newQty = Math.max(0, quantity - 1);
+                                                                        let updated;
+                                                                        if (newQty === 0) {
+                                                                            updated = receiptProducts.filter(p => p.productId !== product._id);
+                                                                        } else {
+                                                                            updated = receiptProducts.map(p => p.productId === product._id ? { ...p, quantity: newQty } : p);
+                                                                        }
+                                                                        setReceiptProducts(updated);
+                                                                        // Recalc
+                                                                        const servicesTotal = receiptCurrentServices.reduce((acc, s) => acc + parsePrice(s.price), 0);
+                                                                        const productsTotal = updated.reduce((acc, p) => {
+                                                                            const prod = allProducts?.find(ap => ap._id === p.productId);
+                                                                            const price = parsePrice(prod?.selling_price);
+                                                                            return acc + (price * p.quantity);
+                                                                        }, 0);
+                                                                        setReceiptFinalPrice(servicesTotal + productsTotal);
+                                                                    }}
+                                                                    className="w-7 h-7 flex items-center justify-center rounded-md bg-white hover:text-red-500 text-slate-400 transition-colors shadow-sm"
+                                                                >
+                                                                    -
+                                                                </button>
+                                                                <span className="min-w-[20px] text-center font-bold text-slate-900 text-sm">
+                                                                    {quantity}
+                                                                </span>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        const newQty = quantity + 1;
+                                                                        const updated = receiptProducts.map(p => p.productId === product._id ? { ...p, quantity: newQty } : p);
+                                                                        setReceiptProducts(updated);
+                                                                        // Recalc
+                                                                        const servicesTotal = receiptCurrentServices.reduce((acc, s) => acc + parsePrice(s.price), 0);
+                                                                        const productsTotal = updated.reduce((acc, p) => {
+                                                                            const prod = allProducts?.find(ap => ap._id === p.productId);
+                                                                            const price = parsePrice(prod?.selling_price);
+                                                                            return acc + (price * p.quantity);
+                                                                        }, 0);
+                                                                        setReceiptFinalPrice(servicesTotal + productsTotal);
+                                                                    }}
+                                                                    className="w-7 h-7 flex items-center justify-center rounded-md bg-white hover:bg-slate-900 hover:text-white text-slate-400 transition-colors shadow-sm"
+                                                                >
+                                                                    +
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="mt-auto pt-2 text-center text-xs text-gold font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            Ajouter
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* STEP 3: NEXT APPOINTMENT */}
+                            {receiptStep === 3 && (
+                                <div className="animate-in slide-in-from-right-4 fade-in duration-300 flex flex-col items-center max-w-lg mx-auto py-4">
+                                    <div className="text-center mb-6">
+                                        <h3 className="text-lg font-bold text-slate-900">Prochain Rendez-vous</h3>
+                                        <p className="text-slate-500 text-sm">Planifier la prochaine séance maintenant.</p>
+                                    </div>
+
+                                    <div className="w-full bg-white border border-slate-200 rounded-2xl p-6 shadow-sm mb-6">
+                                        <AdminCalendar
+                                            value={receiptNextDate || new Date()}
+                                            onChange={(d) => setReceiptNextDate(d)}
+                                        />
+
+                                        {!receiptNextDate && (
+                                            <p className="text-center text-xs text-slate-400 mt-4 italic">
+                                                Aucune date sélectionnée (Pas de prochain RDV)
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    {receiptNextDate && (
+                                        <div className="w-full bg-white border border-slate-200 rounded-2xl p-6 shadow-sm animate-in fade-in slide-in-from-top-2">
+                                            <div className="mb-4">
                                                 <p className="text-xs font-bold text-slate-400 uppercase mb-2">Heure</p>
                                                 <input
                                                     type="time"
                                                     value={receiptNextTime}
                                                     onChange={(e) => setReceiptNextTime(e.target.value)}
-                                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 outline-none focus:border-gold"
+                                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 outline-none focus:border-gold focus:ring-1 focus:ring-gold/20"
                                                 />
                                             </div>
 
-                                            {/* Next Services Selection */}
                                             <div>
-                                                <p className="text-xs font-bold text-slate-400 uppercase mb-2">Services (Prochain RDV)</p>
-                                                <div className="space-y-1 max-h-[150px] overflow-y-auto border border-slate-100 rounded-xl p-2 bg-slate-50">
-                                                    {groupedServices.map((group: any) => (
+                                                <p className="text-xs font-bold text-slate-400 uppercase mb-2">Services à prévoir</p>
+                                                <div className="space-y-1 max-h-[150px] overflow-y-auto border border-slate-100 rounded-xl p-2 bg-slate-50 custom-scrollbar">
+                                                    {allServices && groupServicesByCategory(allServices).map((group: any) => (
                                                         <div key={group.id}>
                                                             <p className="text-[10px] uppercase font-bold text-slate-400 mt-2 mb-1 pl-1">{group.title}</p>
                                                             {group.treatments.map((svc: any) => {
@@ -650,14 +785,11 @@ const AdminAppointmentsPage: React.FC = () => {
                                                                     <button
                                                                         key={svc._id}
                                                                         onClick={() => {
-                                                                            if (isSelected) {
-                                                                                setReceiptNextServices(prev => prev.filter(s => s._id !== svc._id));
-                                                                            } else {
-                                                                                setReceiptNextServices(prev => [...prev, svc]);
-                                                                            }
+                                                                            if (isSelected) setReceiptNextServices(prev => prev.filter(s => s._id !== svc._id));
+                                                                            else setReceiptNextServices(prev => [...prev, svc]);
                                                                         }}
-                                                                        className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium border transition-all flex items-center justify-between
-                                                                                ${isSelected ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-100 hover:bg-slate-50'}`}
+                                                                        className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold border transition-all flex items-center justify-between
+                                                                                ${isSelected ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-100 hover:bg-slate-100'}`}
                                                                     >
                                                                         <span className="truncate">{svc.name}</span>
                                                                         {isSelected && <Check className="w-3 h-3 text-gold" />}
@@ -669,221 +801,109 @@ const AdminAppointmentsPage: React.FC = () => {
                                                 </div>
                                             </div>
                                         </div>
-
-                                        <button
-                                            onClick={() => setIsNextApptPickerOpen(false)}
-                                            className="mt-4 w-full py-3 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors"
-                                        >
-                                            Valider
-                                        </button>
-                                    </div>
-                                )}
-                                <h3 className="text-xs font-bold uppercase text-gold mb-6 tracking-widest flex items-center gap-2">
-                                    <Package className="w-4 h-4" /> Produits Utilisés
-                                </h3>
-
-                                <div className="space-y-4">
-                                    {allProducts?.map(product => {
-                                        const current = receiptProducts.find(p => p.productId === product._id);
-                                        const quantity = current?.quantity || 0;
-                                        const isActive = quantity > 0;
-
-                                        return (
-                                            <div
-                                                key={product._id}
-                                                className={`p-4 rounded-xl border transition-all duration-200 flex flex-col gap-3
-                                                    ${isActive
-                                                        ? 'bg-white border-gold shadow-md'
-                                                        : 'bg-slate-50/50 border-slate-100 hover:border-slate-300'}`}
-                                            >
-                                                <div className="flex justify-between items-center">
-                                                    <span className={`font-bold text-sm ${isActive ? 'text-slate-900' : 'text-slate-500'}`}>
-                                                        {product.name}
-                                                    </span>
-                                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider">
-                                                        Stock: {product.stock_quantity}
-                                                    </span>
-                                                </div>
-
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-2 bg-slate-100 rounded-lg p-1 border border-slate-200">
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                const newQty = Math.max(0, quantity - 1);
-                                                                let updated;
-                                                                if (newQty === 0) {
-                                                                    updated = receiptProducts.filter(p => p.productId !== product._id);
-                                                                } else {
-                                                                    if (current) {
-                                                                        updated = receiptProducts.map(p => p.productId === product._id ? { ...p, quantity: newQty } : p);
-                                                                    } else {
-                                                                        updated = [...receiptProducts, { productId: product._id, quantity: newQty }];
-                                                                    }
-                                                                }
-                                                                setReceiptProducts(updated);
-
-                                                                // Recalculate Total
-                                                                const servicesTotal = receiptCurrentServices.reduce((acc, s) => acc + parsePrice(s.price), 0);
-                                                                const productsTotal = updated.reduce((acc, p) => {
-                                                                    const prod = allProducts?.find(ap => ap._id === p.productId);
-                                                                    const price = parsePrice(prod?.selling_price);
-                                                                    return acc + (price * p.quantity);
-                                                                }, 0);
-                                                                setReceiptFinalPrice(servicesTotal + productsTotal);
-                                                            }}
-                                                            className="w-8 h-8 flex items-center justify-center rounded-md bg-white hover:bg-white text-slate-400 hover:text-red-500 transition-colors shadow-sm"
-                                                        >
-                                                            -
-                                                        </button>
-                                                        <span className={`w-8 text-center font-bold ${isActive ? 'text-slate-900' : 'text-slate-300'}`}>
-                                                            {quantity}
-                                                        </span>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                const newQty = quantity + 1;
-                                                                let updated;
-                                                                if (current) {
-                                                                    updated = receiptProducts.map(p => p.productId === product._id ? { ...p, quantity: newQty } : p);
-                                                                } else {
-                                                                    updated = [...receiptProducts, { productId: product._id, quantity: newQty }];
-                                                                }
-                                                                setReceiptProducts(updated);
-
-                                                                // Recalculate Total
-                                                                const servicesTotal = receiptCurrentServices.reduce((acc, s) => acc + parsePrice(s.price), 0);
-                                                                const productsTotal = updated.reduce((acc, p) => {
-                                                                    const prod = allProducts?.find(ap => ap._id === p.productId);
-                                                                    const price = parsePrice(prod?.selling_price);
-                                                                    return acc + (price * p.quantity);
-                                                                }, 0);
-                                                                setReceiptFinalPrice(servicesTotal + productsTotal);
-                                                            }}
-                                                            className="w-8 h-8 flex items-center justify-center rounded-md bg-white hover:bg-slate-900 hover:text-white text-slate-400 transition-colors shadow-sm"
-                                                        >
-                                                            +
-                                                        </button>
-                                                    </div>
-
-                                                    {(product.selling_price !== undefined) && (
-                                                        <span className="text-xs text-slate-400">
-                                                            {quantity > 0 ? `+ ${(product.selling_price * quantity).toLocaleString()} DA` : `${product.selling_price} DA unit`}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                                <h3 className="text-xs font-bold uppercase text-gold mb-4 tracking-widest flex items-center gap-2">
-                                    <CalendarIcon className="w-4 h-4" /> Prochain Rendez-vous
-                                </h3>
-
-                                <div
-                                    onClick={() => setIsNextApptPickerOpen(!isNextApptPickerOpen)}
-                                    className={`border rounded-xl p-4 cursor-pointer transition-all group mb-4 relative overflow-hidden
-                                        ${isNextApptPickerOpen ? 'bg-slate-50 border-gold shadow-md' : 'bg-white border-slate-200 hover:border-gold/50 hover:shadow-md'}`}
-                                >
-                                    <div className="flex items-center gap-3 mb-2 relative z-10">
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors
-                                            ${isNextApptPickerOpen ? 'bg-gold/10 text-gold' : 'bg-slate-50 text-slate-400 group-hover:text-gold group-hover:bg-gold/10'}`}>
-                                            <CalendarIcon className="w-5 h-5" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="font-bold text-slate-900 text-sm">Programmer Prochain RDV</p>
-                                            <p className="text-xs text-slate-400">
-                                                {receiptNextDate ? 'Date sélectionnée' : 'Définir une date et heure'}
-                                            </p>
-                                        </div>
-                                        <div className={`transform transition-transform ${isNextApptPickerOpen ? 'rotate-180' : ''}`}>
-                                            <ChevronRight className="w-5 h-5 text-slate-400" />
-                                        </div>
-                                    </div>
-
-                                    {receiptNextDate && !isNextApptPickerOpen && (
-                                        <div className="mt-2 text-center bg-slate-100 rounded-lg py-2 border border-slate-200">
-                                            <span className="block text-slate-900 font-bold text-sm">
-                                                {receiptNextDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
-                                            </span>
-                                            <span className="text-gold font-bold text-sm">{receiptNextTime || 'Heure non définie'}</span>
-                                        </div>
                                     )}
                                 </div>
+                            )}
 
-                                {/* INLINE PICKER CONTENT */}
-                                {isNextApptPickerOpen && (
-                                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6 animate-in slide-in-from-top-2 duration-200">
+                            {/* STEP 4: SUMMARY & PAYMENT */}
+                            {receiptStep === 4 && (
+                                <div className="animate-in slide-in-from-right-4 fade-in duration-300 max-w-lg mx-auto space-y-6">
+                                    <div className="text-center mb-8">
+                                        <h3 className="text-lg font-bold text-slate-900">Récapitulatif & Paiement</h3>
+                                        <p className="text-slate-500 text-sm">Vérifiez les détails avant d'encaisser.</p>
+                                    </div>
 
-                                        <div className="mb-4">
-                                            <AdminCalendar
-                                                value={receiptNextDate || new Date()}
-                                                onChange={(d) => setReceiptNextDate(d)}
-                                            />
-                                        </div>
-
-                                        <div className="mb-4">
-                                            <p className="text-xs font-bold text-slate-400 uppercase mb-2">Heure</p>
-                                            <input
-                                                type="time"
-                                                value={receiptNextTime}
-                                                onChange={(e) => setReceiptNextTime(e.target.value)}
-                                                className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-900 outline-none focus:border-gold focus:ring-1 focus:ring-gold/20"
-                                            />
-                                        </div>
-
-                                        {/* Next Services Selection - Inline */}
-                                        <div className="mb-4">
-                                            <p className="text-xs font-bold text-slate-400 uppercase mb-2">Services à prévoir</p>
-                                            <div className="space-y-1 max-h-[150px] overflow-y-auto border border-slate-200 rounded-xl p-2 bg-white custom-scrollbar">
-                                                {groupedServices.map((group: any) => (
-                                                    <div key={group.id}>
-                                                        <p className="text-[10px] uppercase font-bold text-slate-400 mt-2 mb-1 pl-1">{group.title}</p>
-                                                        {group.treatments.map((svc: any) => {
-                                                            const isSelected = receiptNextServices.some(s => s._id === svc._id);
-                                                            return (
-                                                                <button
-                                                                    key={svc._id}
-                                                                    onClick={() => {
-                                                                        if (isSelected) {
-                                                                            setReceiptNextServices(prev => prev.filter(s => s._id !== svc._id));
-                                                                        } else {
-                                                                            setReceiptNextServices(prev => [...prev, svc]);
-                                                                        }
-                                                                    }}
-                                                                    className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold border transition-all flex items-center justify-between
-                                                                            ${isSelected ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-600 border-slate-100 hover:bg-slate-100'}`}
-                                                                >
-                                                                    <span className="truncate">{svc.name}</span>
-                                                                    {isSelected && <Check className="w-3 h-3 text-gold" />}
-                                                                </button>
-                                                            );
-                                                        })}
+                                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                                        {/* Services Summary */}
+                                        <div className="p-4 border-b border-slate-100">
+                                            <h4 className="text-xs font-bold text-slate-400 uppercase mb-3 tracking-wider">Services</h4>
+                                            <div className="space-y-2">
+                                                {receiptCurrentServices.map(s => (
+                                                    <div key={s._id} className="flex justify-between text-sm">
+                                                        <span className="text-slate-700 font-medium">{s.name}</span>
+                                                        <span className="text-slate-900 font-bold">{parsePrice(s.price).toLocaleString()} DA</span>
                                                     </div>
                                                 ))}
+                                                {receiptCurrentServices.length === 0 && <p className="text-slate-400 italic text-sm">Aucun service</p>}
                                             </div>
                                         </div>
 
-                                        <button
-                                            onClick={() => setIsNextApptPickerOpen(false)}
-                                            className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10"
-                                        >
-                                            Confirmer la date
-                                        </button>
+                                        {/* Products Summary */}
+                                        {receiptProducts.length > 0 && (
+                                            <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+                                                <h4 className="text-xs font-bold text-slate-400 uppercase mb-3 tracking-wider">Produits (Supplément)</h4>
+                                                <div className="space-y-2">
+                                                    {receiptProducts.map(p => {
+                                                        const prod = allProducts?.find(ap => ap._id === p.productId);
+                                                        const price = parsePrice(prod?.selling_price) * p.quantity;
+                                                        return (
+                                                            <div key={p.productId} className="flex justify-between text-sm">
+                                                                <span className="text-slate-700">{prod?.name} <span className="text-slate-400 text-xs">x{p.quantity}</span></span>
+                                                                <span className="text-slate-900 font-bold">{price.toLocaleString()} DA</span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Next Appt Summary */}
+                                        <div className="p-4 bg-slate-50/80 border-b border-slate-100 flex items-center gap-3">
+                                            <CalendarIcon className="w-4 h-4 text-gold" />
+                                            <div className="flex-1">
+                                                <p className="text-xs font-bold text-slate-500 uppercase">Prochain RDV</p>
+                                                {receiptNextDate ? (
+                                                    <p className="text-sm font-bold text-slate-900">
+                                                        {receiptNextDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} à {receiptNextTime}
+                                                    </p>
+                                                ) : (
+                                                    <p className="text-sm text-slate-400 italic">Non planifié</p>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Total */}
+                                        <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
+                                            <span className="text-sm font-medium opacity-80 uppercase tracking-widest">Total à Payer</span>
+                                            <span className="font-serif text-3xl font-bold text-gold">
+                                                {receiptFinalPrice.toLocaleString()} <span className="text-lg">DA</span>
+                                            </span>
+                                        </div>
                                     </div>
-                                )}
-                            </div>
+                                </div>
+                            )}
+
                         </div>
 
-                        {/* Footer Action */}
-                        <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end">
-                            <button
-                                onClick={handleFinishAppointment}
-                                className="px-8 py-3 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 shadow-lg shadow-slate-900/20 flex items-center gap-2 transition-all"
-                            >
-                                <Check className="w-5 h-5" />
-                                Terminer & Encaisser
-                            </button>
+                        {/* Footer Navigation */}
+                        <div className="p-6 border-t border-slate-100 bg-white flex justify-between items-center">
+                            {receiptStep > 1 ? (
+                                <button
+                                    onClick={() => setReceiptStep(prev => prev - 1)}
+                                    className="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors"
+                                >
+                                    Retour
+                                </button>
+                            ) : (
+                                <div></div> // Spacer
+                            )}
+
+                            {receiptStep < 4 ? (
+                                <button
+                                    onClick={() => setReceiptStep(prev => prev + 1)}
+                                    className="px-8 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 flex items-center gap-2"
+                                >
+                                    Suivant <ChevronRight className="w-4 h-4" />
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleFinishAppointment}
+                                    className="px-8 py-2.5 rounded-xl bg-grad-gold text-white font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-gold/20 flex items-center gap-2"
+                                >
+                                    <Check className="w-5 h-5" />
+                                    Terminer & Encaisser
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
