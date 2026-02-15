@@ -176,7 +176,7 @@ const LandingPage: React.FC = () => {
                         </div>
 
                         {/* Modal Content - Expanded width */}
-                        <div className="flex flex-col p-6 md:p-10 md:w-7/12 md:overflow-y-auto md:custom-scrollbar bg-[#0F172A]">
+                        <div className="flex flex-col p-6 md:p-10 md:w-7/12 overflow-y-auto custom-scrollbar bg-[#0F172A]">
                             <div className="mb-8">
                                 <h2 className="mb-2 font-serif text-4xl text-white hidden md:block">{selectedRitual.title}</h2>
                                 <p className="mb-6 text-xs font-bold uppercase tracking-widest text-gold opacity-80">{selectedRitual.subtitle}</p>

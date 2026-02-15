@@ -426,7 +426,7 @@ const BookingPage: React.FC = () => {
 
     // --- MAIN RENDER ---
     return (
-        <div className="relative min-h-screen py-10 font-sans selection:bg-gold/30 text-white flex items-center justify-center overflow-y-auto">
+        <div className="relative min-h-screen py-10 font-sans selection:bg-gold/30 text-white flex items-start md:items-center justify-center overflow-y-auto">
 
             {/* BACKGROUND: Fixed Full Screen */}
             <div className="fixed inset-0 z-0 bg-black pointer-events-none">
