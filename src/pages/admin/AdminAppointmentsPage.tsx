@@ -235,16 +235,21 @@ const AdminAppointmentsPage: React.FC = () => {
                         <ChevronLeft className="w-5 h-5" />
                     </button>
 
-                    <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide px-4">
+                    <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide px-4 justify-center md:justify-start">
                         {dates.map((date, index) => {
                             const isSelected = isSameDay(date, selectedDate);
+                            // Only show 3 days on mobile (Center +/- 1), show all on desktop
+                            const isHiddenOnMobile = Math.abs(index - 3) > 1;
+
                             return (
                                 <button
                                     key={index}
                                     onClick={() => handleDateSelect(date)}
-                                    className={`flex flex-col items-center justify-center min-w-[60px] h-[80px] rounded-2xl transition-all duration-300 ${isSelected
-                                        ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/30 scale-105'
-                                        : 'bg-transparent text-slate-400 hover:bg-slate-50'
+                                    className={`flex-col items-center justify-center min-w-[60px] h-[80px] rounded-2xl transition-all duration-300 
+                                        ${isHiddenOnMobile ? 'hidden md:flex' : 'flex'}
+                                        ${isSelected
+                                            ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/30 scale-105'
+                                            : 'bg-transparent text-slate-400 hover:bg-slate-50'
                                         }`}
                                 >
                                     <span className={`text-sm font-medium ${isSelected ? 'text-white/60' : ''}`}>
