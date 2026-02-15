@@ -147,7 +147,7 @@ const LandingPage: React.FC = () => {
             {selectedRitual && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 px-4 backdrop-blur-md animate-in fade-in duration-300">
 
-                    <div className="relative w-full max-w-4xl max-h-[90dvh] overflow-hidden rounded-3xl bg-[#0F172A] border border-white/10 shadow-2xl md:flex animate-in zoom-in-95 duration-300">
+                    <div className="relative w-full max-w-4xl max-h-[90dvh] overflow-hidden rounded-3xl bg-[#0F172A] border border-white/10 shadow-2xl flex flex-col md:flex-row animate-in zoom-in-95 duration-300">
 
                         {/* Close Button */}
                         <button
@@ -176,7 +176,7 @@ const LandingPage: React.FC = () => {
                         </div>
 
                         {/* Modal Content - Expanded width */}
-                        <div className="flex flex-col p-6 md:p-10 md:w-7/12 overflow-y-auto custom-scrollbar bg-[#0F172A]">
+                        <div className="flex-1 flex flex-col p-6 md:p-10 md:w-7/12 overflow-y-auto custom-scrollbar bg-[#0F172A] relative">
                             <div className="mb-8">
                                 <h2 className="mb-2 font-serif text-4xl text-white hidden md:block">{selectedRitual.title}</h2>
                                 <p className="mb-6 text-xs font-bold uppercase tracking-widest text-gold opacity-80">{selectedRitual.subtitle}</p>
