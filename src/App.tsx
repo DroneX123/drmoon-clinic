@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import LandingPage from './pages/LandingPage';
 import BookingPage from './pages/BookingPage';
-import OffersPage from './pages/OffersPage';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminLayout from './components/admin/AdminLayout';
@@ -27,7 +26,6 @@ const AnimatedRoutes: React.FC = () => {
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<PageTransition><LandingPage /></PageTransition>} />
           <Route path="/booking" element={<PageTransition><BookingPage /></PageTransition>} />
-          <Route path="/offers" element={<PageTransition><OffersPage /></PageTransition>} />
 
           <Route path="/admin" element={<AdminLoginPage />} />
           <Route element={<AdminLayout />}>

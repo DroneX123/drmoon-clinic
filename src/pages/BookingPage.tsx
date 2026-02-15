@@ -68,19 +68,21 @@ const BookingPage: React.FC = () => {
     }, [selectedTreatments, services]);
 
     // Initialize Active Tab from URL params or default
+    // Removed duplicate state declaration
+
+
+    // Effect to set initial tab from URL once RITUALS are loaded
     useEffect(() => {
-        if (RITUALS.length > 0 && !activeTabId) {
+        if (RITUALS.length > 0) {
             const categoryParam = searchParams.get('category');
             if (categoryParam) {
-                // Try to match exact ID or case-insensitive
                 const match = RITUALS.find(r => r.id.toLowerCase() === categoryParam.toLowerCase());
-                if (match) setActiveTabId(match.id);
-                else setActiveTabId(RITUALS[0].id);
-            } else {
-                setActiveTabId(RITUALS[0].id);
+                if (match) {
+                    setActiveTabId(match.id);
+                }
             }
         }
-    }, [RITUALS, activeTabId, searchParams]);
+    }, [RITUALS, searchParams]);
 
     // --- DYNAMIC BACKGROUND & TAB LOGIC ---
     useEffect(() => {
@@ -184,45 +186,51 @@ const BookingPage: React.FC = () => {
     );
 
     const Step1_Services = () => (
-        <div className="flex flex-col h-full animate-in fade-in zoom-in-95 duration-500">
+        <div className="flex flex-col w-full animate-in fade-in zoom-in-95 duration-500">
 
             {/* TABS HEADER */}
-            <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-none">
-                {RITUALS.map(cat => (
-                    <button
-                        key={cat.id}
-                        onClick={() => setActiveTabId(cat.id)}
-                        className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all duration-300 border
-                            ${activeTabId === cat.id
-                                ? 'bg-gold border-gold text-slate-900 shadow-lg shadow-gold/20'
-                                : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10 hover:text-white'}
-                        `}
-                    >
-                        {cat.title}
-                    </button>
-                ))}
+            {/* TABS HEADER - Wide & Sleek */}
+            <div className="grid grid-cols-3 gap-0 mb-6 border-b border-white/10">
+                {RITUALS.map(cat => {
+                    const isActive = activeTabId === cat.id;
+                    return (
+                        <button
+                            key={cat.id}
+                            onClick={() => setActiveTabId(cat.id)}
+                            className={`pb-3 text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300 relative
+                                ${isActive
+                                    ? 'text-gold'
+                                    : 'text-white/40 hover:text-white/70'}
+                            `}
+                        >
+                            {cat.title}
+                            {/* Active Indicator Line */}
+                            <span className={`absolute bottom-0 left-0 w-full h-[2px] bg-gold transition-transform duration-300 origin-center ${isActive ? 'scale-x-100' : 'scale-x-0'}`} />
+                        </button>
+                    )
+                })}
             </div>
 
-            {/* SERVICE LIST (For Active Tab) */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-2 -mr-2">
+            {/* SERVICE LIST (For Active Tab) - Full view */}
+            <div className="w-full space-y-2">
                 {RITUALS.find(r => r.id === activeTabId)?.treatments.map((t, idx) => {
                     const isSelected = selectedTreatments.includes(t.name);
                     return (
                         <div
                             key={idx}
                             onClick={(e) => { e.stopPropagation(); setSelectedTreatments(prev => prev.includes(t.name) ? prev.filter(x => x !== t.name) : [...prev, t.name]) }}
-                            className={`flex justify-between items-center p-4 rounded-xl cursor-cursor-pointer border transition-all duration-200
+                            className={`flex justify-between items-center p-3.5 rounded-xl cursor-pointer border transition-all duration-200 group
                                  ${isSelected
-                                    ? 'bg-gradient-to-r from-gold/20 to-gold/5 border-gold/50 text-white shadow-[0_0_15px_rgba(212,175,55,0.1)]'
-                                    : 'bg-white/5 border-transparent text-white/60 hover:bg-white/10'}
+                                    ? 'bg-gradient-to-r from-gold/20 to-gold/5 border-gold text-white shadow-[0_0_15px_rgba(212,175,55,0.15)]'
+                                    : 'bg-white/[0.02] hover:bg-white/5 border-white/5 hover:border-white/10 text-white/60 hover:text-white'}
                              `}
                         >
-                            <div className="flex-1">
-                                <p className={`font-serif text-sm leading-tight ${isSelected ? 'text-gold' : 'text-white'}`}>{t.name}</p>
-                                <p className={`text-[10px] mt-1 font-mono tracking-widest ${isSelected ? 'text-white/80' : 'text-white/30'}`}>{t.price}</p>
+                            <div className="flex-1 pr-3">
+                                <p className={`font-serif text-sm leading-tight transition-colors ${isSelected ? 'text-gold' : 'text-white group-hover:text-gold/80'}`}>{t.name}</p>
+                                <p className={`text-[10px] mt-1 font-mono tracking-widest uppercase opacity-80 ${isSelected ? 'text-white' : 'text-white/30'}`}>{t.price}</p>
                             </div>
-                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${isSelected ? 'bg-gold border-gold' : 'border-white/20'}`}>
-                                {isSelected && <Check className="w-3 h-3 text-slate-900" />}
+                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all duration-300 ${isSelected ? 'bg-gold border-gold' : 'border-white/10 group-hover:border-gold/30'}`}>
+                                {isSelected && <Check className="w-3 h-3 text-slate-900 stroke-[3]" />}
                             </div>
                         </div>
                     )
@@ -375,10 +383,10 @@ const BookingPage: React.FC = () => {
 
     // --- MAIN RENDER ---
     return (
-        <div className="fixed inset-0 bg-slate-950 font-sans selection:bg-gold/30 text-white overflow-hidden flex items-center justify-center">
+        <div className="relative min-h-screen py-10 font-sans selection:bg-gold/30 text-white flex items-center justify-center overflow-y-auto">
 
-            {/* BACKGROUND: Full Screen with Overlay */}
-            <div className="absolute inset-0 z-0 bg-black">
+            {/* BACKGROUND: Fixed Full Screen */}
+            <div className="fixed inset-0 z-0 bg-black pointer-events-none">
                 {[bgDefault, bgVisage, bgCorps, bgPeau].map((imgSrc) => (
                     <div
                         key={imgSrc}
@@ -398,9 +406,9 @@ const BookingPage: React.FC = () => {
                 ))}
             </div>
 
-            {/* HEADER (Floating) */}
-            <div className="absolute top-0 left-0 w-full p-6 z-50 flex justify-between items-center">
-                <div onClick={() => navigate('/')} className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-3">
+            {/* HEADER (Fixed) */}
+            <div className="fixed top-0 left-0 w-full p-6 z-50 flex justify-between items-center pointer-events-none">
+                <div onClick={() => navigate('/')} className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-3 pointer-events-auto">
                     <MoonMenuIcon className="h-8 w-8 text-gold drop-shadow-md" />
                 </div>
                 {step > 1 && step < 4 && (
@@ -410,22 +418,22 @@ const BookingPage: React.FC = () => {
                 )}
             </div>
 
-            {/* CENTRAL CARD */}
-            <div className="relative z-20 w-full max-w-md h-[85vh] max-h-[800px] flex flex-col">
-                <div className="flex-1 bg-slate-950/80 backdrop-blur-xl border border-white/10 rounded-[2.5rem] shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col relative animate-in fade-in zoom-in-95 duration-500">
+            {/* CENTRAL CARD - Growable */}
+            <div className="relative z-20 w-full max-w-md flex flex-col my-auto">
+                <div className="bg-slate-950/80 backdrop-blur-xl border border-white/10 rounded-[2.5rem] shadow-[0_0_100px_rgba(0,0,0,0.5)] flex flex-col relative animate-in fade-in zoom-in-95 duration-500">
 
                     {/* Card Header (Steps) */}
                     {step < 4 && (
                         <div className="pt-8 pb-4 border-b border-white/5">
                             <h2 className="text-center font-serif text-2xl text-white mb-4">
-                                {step === 1 ? 'Vos Soins' : step === 2 ? 'Votre Date' : 'Vos Infos'}
+                                {step === 1 ? 'Vos Soins' : step === 2 ? 'Disponible à partir du' : 'Vos Infos'}
                             </h2>
                             <Stepper />
                         </div>
                     )}
 
                     {/* Scrollable Content */}
-                    <div className="flex-1 overflow-hidden px-6 md:px-8 pb-4 relative">
+                    <div className="w-full px-6 md:px-8 pb-4 relative">
                         {step === 1 && <Step1_Services />}
                         {step === 2 && <Step2_Date />}
                         {step === 3 && <Step3_Details />}
@@ -440,14 +448,25 @@ const BookingPage: React.FC = () => {
                                     <AlertCircle size={12} /> {errorMessage}
                                 </div>
                             )}
-                            <button
-                                onClick={handleNext}
-                                disabled={isSubmitting}
-                                className="w-full py-4 bg-gradient-to-r from-gold to-amber-400 hover:from-white hover:to-white text-slate-900 font-bold rounded-xl transition-all shadow-[0_4px_20px_rgba(212,175,55,0.3)] hover:shadow-[0_4px_30px_rgba(255,255,255,0.5)] flex items-center justify-center gap-2 uppercase tracking-widest text-sm transform hover:-translate-y-1"
-                            >
-                                {isSubmitting ? <span className="animate-pulse">Patientez...</span> : (step === 3 ? 'Confirmer' : 'Suivant')}
-                                {!isSubmitting && step !== 3 && <ChevronRight size={16} />}
-                            </button>
+                            <div className="flex gap-3">
+                                {step > 1 && (
+                                    <button
+                                        onClick={() => setStep(prev => prev - 1)}
+                                        className="w-1/3 py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl transition-all border border-white/10 flex items-center justify-center uppercase tracking-widest text-xs hover:border-white/20"
+                                    >
+                                        <ArrowLeft size={14} className="mr-2" />
+                                        Retour
+                                    </button>
+                                )}
+                                <button
+                                    onClick={handleNext}
+                                    disabled={isSubmitting}
+                                    className={`py-4 bg-gradient-to-r from-gold to-amber-400 hover:from-white hover:to-white text-slate-900 font-bold rounded-xl transition-all shadow-[0_4px_20px_rgba(212,175,55,0.3)] hover:shadow-[0_4px_30px_rgba(255,255,255,0.5)] flex items-center justify-center gap-2 uppercase tracking-widest text-sm transform hover:-translate-y-1 ${step > 1 ? 'flex-1' : 'w-full'}`}
+                                >
+                                    {isSubmitting ? <span className="animate-pulse">Patientez...</span> : (step === 3 ? 'Confirmer' : 'Suivant')}
+                                    {!isSubmitting && step !== 3 && <ChevronRight size={16} />}
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>
