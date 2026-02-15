@@ -500,7 +500,7 @@ const BookingPage: React.FC = () => {
                                 <button
                                     onClick={handleNext}
                                     disabled={isSubmitting}
-                                    className={`py-4 bg-gradient-to-r from-gold to-amber-400 hover:from-white hover:to-white text-slate-900 font-bold rounded-xl transition-all shadow-[0_4px_20px_rgba(212,175,55,0.3)] hover:shadow-[0_4px_30px_rgba(255,255,255,0.5)] flex items-center justify-center gap-2 uppercase tracking-widest text-sm transform hover:-translate-y-1 ${step > 1 ? 'flex-1' : 'w-full'}`}
+                                    className={`py-4 bg-gradient-to-r from-gold to-amber-400 md:hover:from-white md:hover:to-white text-slate-900 font-bold rounded-xl transition-all shadow-[0_4px_20px_rgba(212,175,55,0.3)] md:hover:shadow-[0_4px_30px_rgba(255,255,255,0.5)] flex items-center justify-center gap-2 uppercase tracking-widest text-sm transform md:hover:-translate-y-1 ${step > 1 ? 'flex-1' : 'w-full'}`}
                                 >
                                     {isSubmitting ? <span className="animate-pulse">Patientez...</span> : (step === 3 ? 'Confirmer' : 'Suivant')}
                                     {!isSubmitting && step !== 3 && <ChevronRight size={16} />}
