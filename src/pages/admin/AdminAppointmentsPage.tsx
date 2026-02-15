@@ -768,39 +768,45 @@ const AdminAppointmentsPage: React.FC = () => {
 
                                     {receiptNextDate && (
                                         <div className="w-full bg-white border border-slate-200 rounded-2xl p-6 shadow-sm animate-in fade-in slide-in-from-top-2">
-                                            <div className="mb-4">
-                                                <p className="text-xs font-bold text-slate-400 uppercase mb-2">Heure</p>
-                                                <input
-                                                    type="time"
+                                            <div className="mb-6">
+                                                <h5 className="font-bold text-slate-900 text-sm flex items-center gap-2 mb-3">
+                                                    <Clock className="w-4 h-4 text-gold" />
+                                                    Heure
+                                                </h5>
+                                                <AdminTimeSelector
                                                     value={receiptNextTime}
-                                                    onChange={(e) => setReceiptNextTime(e.target.value)}
-                                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 outline-none focus:border-gold focus:ring-1 focus:ring-gold/20"
+                                                    onChange={setReceiptNextTime}
                                                 />
                                             </div>
 
                                             <div>
                                                 <p className="text-xs font-bold text-slate-400 uppercase mb-2">Services à prévoir</p>
-                                                <div className="space-y-1 max-h-[150px] overflow-y-auto border border-slate-100 rounded-xl p-2 bg-slate-50 custom-scrollbar">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
                                                     {allServices && groupServicesByCategory(allServices).map((group: any) => (
-                                                        <div key={group.id}>
-                                                            <p className="text-[10px] uppercase font-bold text-slate-400 mt-2 mb-1 pl-1">{group.title}</p>
-                                                            {group.treatments.map((svc: any) => {
-                                                                const isSelected = receiptNextServices.some(s => s._id === svc._id);
-                                                                return (
-                                                                    <button
-                                                                        key={svc._id}
-                                                                        onClick={() => {
-                                                                            if (isSelected) setReceiptNextServices(prev => prev.filter(s => s._id !== svc._id));
-                                                                            else setReceiptNextServices(prev => [...prev, svc]);
-                                                                        }}
-                                                                        className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold border transition-all flex items-center justify-between
-                                                                                ${isSelected ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-100 hover:bg-slate-100'}`}
-                                                                    >
-                                                                        <span className="truncate">{svc.name}</span>
-                                                                        {isSelected && <Check className="w-3 h-3 text-gold" />}
-                                                                    </button>
-                                                                );
-                                                            })}
+                                                        <div key={group.id} className="col-span-full">
+                                                            <h5 className="font-bold text-slate-700 mb-2 uppercase text-xs tracking-wider pl-1">{group.title}</h5>
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                                {group.treatments.map((svc: any) => {
+                                                                    const isSelected = receiptNextServices.some(s => s._id === svc._id);
+                                                                    return (
+                                                                        <button
+                                                                            key={svc._id}
+                                                                            onClick={() => {
+                                                                                if (isSelected) setReceiptNextServices(prev => prev.filter(s => s._id !== svc._id));
+                                                                                else setReceiptNextServices(prev => [...prev, svc]);
+                                                                            }}
+                                                                            className={`text-left px-3 py-2 rounded-lg text-sm border transition-all duration-200 flex items-center justify-between group
+                                                                                ${isSelected
+                                                                                    ? 'bg-slate-900 text-white border-slate-900'
+                                                                                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                                                                                }`}
+                                                                        >
+                                                                            <span className="font-medium">{svc.name}</span>
+                                                                            {isSelected && <Check className="w-3.5 h-3.5 text-gold" />}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
                                                         </div>
                                                     ))}
                                                 </div>
