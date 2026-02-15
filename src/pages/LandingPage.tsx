@@ -43,40 +43,45 @@ const LandingPage: React.FC = () => {
     return (
         <div className="relative min-h-[100dvh] w-full bg-slate-950 font-sans text-white">
 
-            {/* Navbar */}
-            <nav className="fixed top-0 left-0 z-50 flex w-full items-center justify-between px-6 py-6 md:px-12 md:py-8 bg-gradient-to-b from-black/50 to-transparent backdrop-blur-[2px]">
-                {/* Left: Menu & Brand */}
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        className="group flex items-center justify-center rounded-full bg-white/10 p-2 backdrop-blur-sm transition-all hover:bg-gold/20 hover:text-gold"
-                        aria-label="Menu"
-                    >
-                        <MoonMenuIcon className="h-5 w-5 text-white" />
-                    </button>
+            {/* Navbar - Redesigned for Mobile Elegance */}
+            <nav className="fixed top-0 left-0 z-50 flex w-full items-center justify-between px-6 py-6 md:px-12 md:py-8 bg-gradient-to-b from-black/80 to-transparent backdrop-blur-[2px]">
 
-                    <button
-                        onClick={() => navigate('/')}
-                        className="flex flex-col text-left group transition-transform hover:scale-105"
-                    >
-                        <span className="font-serif text-lg font-medium leading-none tracking-wide text-white group-hover:text-gold transition-colors">
-                            Dr. Moon
-                        </span>
-                        <span className="text-[8px] font-bold uppercase tracking-[0.25em] text-gold">
-                            Cabinet Esthétique
-                        </span>
-                    </button>
-                </div>
+                {/* 1. Menu Trigger (Left) */}
+                <button
+                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    className="group flex items-center justify-center rounded-full bg-white/5 p-3 backdrop-blur-md transition-all hover:bg-gold/20 hover:text-gold border border-white/5"
+                    aria-label="Menu"
+                >
+                    <MoonMenuIcon className="h-5 w-5 text-white/80 group-hover:text-gold transition-colors" />
+                </button>
 
-                {/* Right: Contact 'Stylish' Button */}
+                {/* 2. Brand Center - Absolute Center for perfect alignment */}
+                <button
+                    onClick={() => navigate('/')}
+                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center group"
+                >
+                    <span className="font-serif text-xl md:text-2xl font-medium leading-none tracking-wide text-white group-hover:text-gold transition-colors drop-shadow-lg">
+                        Dr. Moon
+                    </span>
+                    <span className="text-[7px] md:text-[9px] font-bold uppercase tracking-[0.35em] text-gold/80 mt-1">
+                        Cabinet
+                    </span>
+                </button>
+
+                {/* 3. Contact (Right) - Icon on Mobile, Button on Desktop */}
                 <button
                     onClick={() => smoothScrollTo('footer')}
-                    className="group relative overflow-hidden rounded-full border border-white/30 px-6 py-2 
-                               backdrop-blur-sm transition-all duration-500
-                               hover:bg-white/5 hover:backdrop-blur-md hover:border-gold/50"
+                    className="group relative overflow-hidden rounded-full border border-white/10 px-4 py-2 md:px-6 md:py-2 
+                               backdrop-blur-md transition-all duration-500 bg-white/5
+                               hover:bg-gold/10 hover:border-gold/30"
                 >
-                    <span className="relative z-10 text-xs font-bold uppercase tracking-widest text-white group-hover:text-gold transition-colors">
-                        Contactez-nous
+                    {/* Desktop Text */}
+                    <span className="hidden md:block relative z-10 text-xs font-bold uppercase tracking-widest text-white group-hover:text-gold transition-colors">
+                        Contact
+                    </span>
+                    {/* Mobile Icon/Text Short */}
+                    <span className="md:hidden relative z-10 text-[10px] font-bold uppercase tracking-widest text-white group-hover:text-gold transition-colors">
+                        RDV
                     </span>
                 </button>
             </nav>
