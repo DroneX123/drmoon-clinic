@@ -71,12 +71,13 @@ const LandingPage: React.FC = () => {
                 {/* Right: Contact 'Stylish' Button */}
                 <button
                     onClick={() => smoothScrollTo('footer')}
-                    className="group relative overflow-hidden rounded-full bg-white/10 px-6 py-2 backdrop-blur-md transition-all hover:bg-gold/20"
+                    className="group relative overflow-hidden rounded-full border border-white/30 px-6 py-2 
+                               backdrop-blur-sm transition-all duration-500
+                               hover:bg-white/5 hover:backdrop-blur-md hover:border-gold/50"
                 >
                     <span className="relative z-10 text-xs font-bold uppercase tracking-widest text-white group-hover:text-gold transition-colors">
                         Contactez-nous
                     </span>
-                    <div className="absolute inset-0 -z-10 bg-gradient-to-r from-gold/0 via-gold/10 to-gold/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
                 </button>
             </nav>
 
@@ -129,11 +130,12 @@ const LandingPage: React.FC = () => {
                             </p>
 
                             {/* Button: Visible on Mobile, Slide-up on Desktop Hover & Mobile Press */}
-                            <span className="mt-8 text-[10px] uppercase font-bold tracking-widest text-slate-900 bg-white/90 px-6 py-3 rounded-full transition-all duration-500 shadow-[0_0_20px_rgba(255,255,255,0.2)]
-                                             opacity-100 translate-y-0 hover:bg-gold hover:text-black
+                            <span className="mt-8 text-[10px] uppercase font-bold tracking-widest text-white border border-white/30 px-6 py-2 rounded-full transition-all duration-500
+                                             opacity-100 translate-y-0 backdrop-blur-sm
                                              md:opacity-0 md:translate-y-8 md:group-hover:opacity-100 md:group-hover:translate-y-0
-                                             group-active:scale-95">
-                                Découvrir le rituel
+                                             md:group-hover:bg-white/10 md:group-hover:backdrop-blur-md md:group-hover:border-white/50
+                                             group-active:scale-95 group-active:bg-white/10">
+                                Découvrir
                             </span>
                         </div>
                     </div>

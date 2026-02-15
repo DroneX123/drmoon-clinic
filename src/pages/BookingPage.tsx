@@ -45,6 +45,7 @@ const BookingPage: React.FC = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [instagramError, setInstagramError] = useState('');
+    const [isPhoneValid, setIsPhoneValid] = useState(true); // Default to true to avoid initial error, but will check on submit
     const [currentBg, setCurrentBg] = useState(bgDefault);
     const [searchParams] = useSearchParams();
 
@@ -103,13 +104,46 @@ const BookingPage: React.FC = () => {
 
     // Validation & Handlers
     const validateInstagram = (value: string) => {
-        // Less strict: just check if it's not empty and has length
-        return value.trim().length > 1;
+        // Regex to match simpler usernames or full URLs
+        // We want to verify it looks like a username OR a valid instagram URL
+        if (!value) return false;
+
+        // If it's a full URL, we can try to extract username or just validate the domain
+        if (value.includes('instagram.com')) {
+            return true; // Simple check, we will parse it on submit if needed
+        }
+
+        // Username regex: letters, numbers, underscores, periods
+        const usernameRegex = /^[a-zA-Z0-9._]+$/;
+        return usernameRegex.test(value);
+    };
+
+    const cleanInstagram = (value: string) => {
+        let cleaned = value.trim();
+        // Remove query parameters
+        if (cleaned.includes('?')) {
+            cleaned = cleaned.split('?')[0];
+        }
+        // Remove trailing slash
+        if (cleaned.endsWith('/')) {
+            cleaned = cleaned.slice(0, -1);
+        }
+        // Check if it's a URL
+        const urlMatch = cleaned.match(/instagram\.com\/([^/]+)/);
+        if (urlMatch && urlMatch[1]) {
+            return urlMatch[1];
+        }
+        // Remove @ if present
+        if (cleaned.startsWith('@')) {
+            cleaned = cleaned.substring(1);
+        }
+        return cleaned;
     };
 
     const handleInstagramChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
         setFormData({ ...formData, instagram: val });
+        // Real-time validation could differ from submit validation
         if (val && !validateInstagram(val)) setInstagramError('Pseudo invalide');
         else setInstagramError('');
     };
@@ -120,21 +154,30 @@ const BookingPage: React.FC = () => {
         setErrorMessage('');
 
         try {
-            if (!formData.firstName || !formData.lastName) throw new Error("Veuillez remplir votre nom et prénom.");
-            if (!formData.instagram || instagramError) throw new Error("Instagram valide requis.");
+            // 1. Name Validation (No numbers)
+            const nameRegex = /^[^0-9]+$/;
+            if (!formData.firstName || !nameRegex.test(formData.firstName)) throw new Error("Le prénom ne doit pas contenir de chiffres.");
+            if (!formData.lastName || !nameRegex.test(formData.lastName)) throw new Error("Le nom ne doit pas contenir de chiffres.");
+
+            // 2. Phone Validation
+            if (!formData.phone || !isPhoneValid) throw new Error("Numéro de téléphone invalide ou incomplet.");
+
+            // 3. Instagram Validation
+            const cleanedInsta = cleanInstagram(formData.instagram);
+            if (!cleanedInsta || cleanedInsta.length < 2) throw new Error("Instagram valide requis.");
+
+            if (!selectedDate || !selectedTime) throw new Error("Veuillez sélectionner une date et une heure.");
 
             const serviceIds = selectedTreatments
                 .map(name => services.find(s => s.name === name)?._id)
                 .filter(Boolean) as Id<"services">[];
 
-            if (!selectedDate || !selectedTime) throw new Error("Veuillez sélectionner une date et une heure.");
-
             await createAppointment({
-                firstName: formData.firstName,
-                lastName: formData.lastName,
-                phone: formData.phone,
+                firstName: formData.firstName.trim(),
+                lastName: formData.lastName.trim(),
+                phone: formData.phone.replace(/\s/g, ''),
                 email: formData.email || undefined,
-                instagram: formData.instagram,
+                instagram: cleanedInsta,
                 serviceIds,
                 date: formatDateForConvex(selectedDate),
                 time: selectedTime || "09:00",
@@ -340,7 +383,7 @@ const BookingPage: React.FC = () => {
 
                 <div className="space-y-1">
                     <label className="text-[10px] text-white/40 uppercase font-bold pl-1">Téléphone</label>
-                    <PhoneInput value={formData.phone} onChange={(v, _) => { setFormData({ ...formData, phone: v }); }} />
+                    <PhoneInput value={formData.phone} onChange={(v, isValid) => { setFormData({ ...formData, phone: v }); setIsPhoneValid(isValid); }} />
                 </div>
 
                 <div className="space-y-1">
@@ -411,11 +454,7 @@ const BookingPage: React.FC = () => {
                 <div onClick={() => navigate('/')} className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-3 pointer-events-auto">
                     <MoonMenuIcon className="h-8 w-8 text-gold drop-shadow-md" />
                 </div>
-                {step > 1 && step < 4 && (
-                    <button onClick={() => setStep(prev => prev - 1)} className="p-2 rounded-full bg-slate-900/50 hover:bg-white/10 text-white border border-white/10 transition-colors backdrop-blur">
-                        <ArrowLeft size={20} />
-                    </button>
-                )}
+
             </div>
 
             {/* CENTRAL CARD - Growable */}
@@ -434,10 +473,10 @@ const BookingPage: React.FC = () => {
 
                     {/* Scrollable Content */}
                     <div className="w-full px-6 md:px-8 pb-4 relative">
-                        {step === 1 && <Step1_Services />}
-                        {step === 2 && <Step2_Date />}
-                        {step === 3 && <Step3_Details />}
-                        {step === 4 && <StepSuccess />}
+                        {step === 1 && Step1_Services()}
+                        {step === 2 && Step2_Date()}
+                        {step === 3 && Step3_Details()}
+                        {step === 4 && StepSuccess()}
                     </div>
 
                     {/* Footer Actions */}
