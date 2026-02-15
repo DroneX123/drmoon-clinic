@@ -508,7 +508,7 @@ const AdminAppointmentsPage: React.FC = () => {
                             </button>
                             <button
                                 onClick={handleCreate}
-                                className="flex-1 px-4 py-3 rounded-xl bg-grad-gold text-white font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-gold/20 flex items-center justify-center gap-2"
+                                className="flex-1 px-4 py-3 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-black transition-all shadow-lg shadow-slate-900/20 flex items-center justify-center gap-2"
                             >
                                 <Check className="w-4 h-4" />
                                 Créer le Rendez-vous

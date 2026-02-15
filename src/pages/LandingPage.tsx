@@ -57,30 +57,17 @@ const LandingPage: React.FC = () => {
                     >
                         <MoonMenuIcon className="h-5 w-5 text-white/80 group-hover:text-gold transition-colors" />
                     </button>
-
-                    {/* Desktop Logo (Hidden on Mobile) */}
-                    <button
-                        onClick={() => navigate('/')}
-                        className="hidden md:flex flex-col text-left group transition-transform hover:scale-105"
-                    >
-                        <span className="font-serif text-lg font-medium leading-none tracking-wide text-white group-hover:text-gold transition-colors">
-                            Dr. Moon
-                        </span>
-                        <span className="text-[8px] font-bold uppercase tracking-[0.25em] text-gold">
-                            Cabinet Esthétique
-                        </span>
-                    </button>
                 </div>
 
-                {/* Mobile Logo (Absolute Center - Hidden on Desktop) */}
+                {/* Logo (Absolute Center - Visible on ALL Screens) */}
                 <button
                     onClick={() => navigate('/')}
-                    className="md:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center group pointer-events-auto"
+                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center group pointer-events-auto transition-transform hover:scale-105"
                 >
-                    <span className="font-serif text-xl font-medium leading-none tracking-wide text-white group-hover:text-gold transition-colors drop-shadow-lg">
+                    <span className="font-serif text-xl md:text-2xl font-medium leading-none tracking-wide text-white group-hover:text-gold transition-colors drop-shadow-lg">
                         Dr. Moon
                     </span>
-                    <span className="text-[7px] font-bold uppercase tracking-[0.35em] text-gold/80 mt-1">
+                    <span className="text-[7px] md:text-[9px] font-bold uppercase tracking-[0.35em] text-gold/80 mt-1">
                         Cabinet
                     </span>
                 </button>
